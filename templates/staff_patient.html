@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SignCareLoop | Staff to Patient</title>
+<style>
+:root{--green:#176b50;--ink:#17352c;--muted:#65786f;--line:#dce8e1;--bg:#f4f8f5;--white:#fff}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Segoe UI",Arial,sans-serif}
+header{padding:18px 5%;background:white;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.brand{font-size:21px;font-weight:800}.brand span{color:var(--green)}
+a{color:var(--green);font-weight:700;text-decoration:none}
+main{max-width:1100px;margin:32px auto;padding:0 18px 40px}
+h1{margin:8px 0;font-size:clamp(27px,4vw,38px)}
+.intro{color:var(--muted);line-height:1.6;max-width:760px}
+.eyebrow{font-size:12px;letter-spacing:1.4px;text-transform:uppercase;color:var(--green);font-weight:800}
+.layout{display:grid;grid-template-columns:1.05fr .95fr;gap:20px;margin-top:24px}
+.card{background:white;border:1px solid var(--line);border-radius:16px;padding:22px;min-width:0;box-shadow:0 5px 20px #17352c08}
+h2{font-size:18px;margin:0 0 16px}
+.quick{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+button{font:inherit;font-size:14px;font-weight:700;border:0;border-radius:10px;padding:12px;cursor:pointer}
+.quick button,.secondary{background:#eaf3ed;color:var(--ink);text-align:left}
+button:hover{filter:brightness(.97)}
+label{display:block;font-size:13px;font-weight:700;margin:20px 0 8px}
+textarea{width:100%;min-height:90px;padding:12px;border:1px solid #cbdad0;border-radius:10px;font:inherit;resize:vertical}
+.primary{background:var(--green);color:white}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+#history{height:290px;overflow:auto;background:#f8fbf9;border:1px solid var(--line);border-radius:12px;padding:12px}
+.empty{color:var(--muted);font-size:14px;line-height:1.6;padding:8px}
+.message{background:white;border:1px solid var(--line);border-radius:10px;padding:11px;margin-bottom:9px;overflow-wrap:anywhere}
+.message small{display:block;color:var(--muted);font-size:11px;margin-bottom:5px}
+
+.message strong{font-size:14px}
+.message.patient-message{border-left:4px solid #3879b8}
+.message.staff-message{border-left:4px solid #176b50}
+.message-actions{display:flex;justify-content:flex-end;margin-top:9px}
+.message-actions button{padding:7px 10px;font-size:12px}
+.patient-panel{margin-top:18px;padding:15px;border:1px solid var(--line);border-radius:12px;background:#f8fbf9}
+.patient-panel textarea{min-height:70px}
+
+#videoBox{margin-top:16px;border:1px solid var(--line);border-radius:12px;padding:14px;background:#f8fbf9}
+#signVideo{display:none;width:100%;max-height:300px;background:#13271f;border-radius:9px;margin-top:12px}
+#videoStatus{color:var(--muted);font-size:13px;line-height:1.6}
+.note{font-size:12px;line-height:1.6;color:var(--muted);margin-top:15px}
+@media(max-width:760px){.layout{grid-template-columns:1fr}.quick{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">SignCare<span>Loop</span></div>
+  <a href="/">Back to home</a>
+</header>
+<main>
+  <div class="eyebrow">Hospital communication</div>
+  <h1>Staff → Patient</h1>
+  <p class="intro">Choose a common hospital message or type a custom message. The selected message appears in the conversation, and the page checks for a matching prerecorded sign clip.</p>
+
+  <div class="layout">
+    <section class="card">
+      <h2>1. Choose a message</h2>
+      <div class="quick" id="quickMessages">
+        <button type="button" data-message="Hello">Hello</button>
+        <button type="button" data-message="Do you need help?">Do you need help?</button>
+        <button type="button" data-message="Please call a doctor">Please call a doctor</button>
+        <button type="button" data-message="Please sit down">Please sit down</button>
+        <button type="button" data-message="Are you in pain?">Are you in pain?</button>
+        <button type="button" data-message="I will call a nurse">I will call a nurse</button>
+        <button type="button" data-message="Do you need water?">Do you need water?</button>
+        <button type="button" data-message="Yes">Yes</button>
+        <button type="button" data-message="No">No</button>
+        <button type="button" data-message="Thank you">Thank you</button>
+      </div>
+
+      <label for="customMessage">Or type a message</label>
+      <textarea id="customMessage" maxlength="300" placeholder="Type a message for the patient..."></textarea>
+      <div class="actions">
+        <button class="primary" type="button" id="sendBtn">Add to conversation</button>
+        <button class="secondary" type="button" id="speakBtn">Speak message</button>
+      </div>
+      <p class="note">Speech uses your browser's text-to-speech. It is an optional aid and is not a substitute for confirming that the patient understands.</p>
+    </section>
+
+    <section class="card">
+      <h2>2. Conversation and sign video</h2>
+      <div id="history" aria-live="polite">
+        <div class="empty" id="emptyHistory">No messages yet. Select a phrase or type a message to begin.</div>
+      </div>
+
+      <div class="patient-panel">
+        <h2>Patient ? Staff</h2>
+        <p class="note">Patient can type a request or concern for hospital staff.</p>
+        <label for="patientMessage">Patient message</label>
+        <textarea id="patientMessage" maxlength="300" placeholder="For example: I need help, I am in pain, please call a doctor..."></textarea>
+        <div class="actions">
+          <button class="primary" type="button" id="sendPatientBtn">Send to staff</button>
+        </div>
+        <p class="note" id="patientStatus" role="status" aria-live="polite">Messages appear in this page's conversation.</p>
+      </div>
+
+      <div id="videoBox">
+        <strong>Matching ISL video</strong>
+        <p id="videoStatus">Choose a message to check whether a matching sign clip is available.</p>
+        <video id="signVideo" controls playsinline></video>
+      </div>
+      <div class="actions">
+        <button class="secondary" type="button" id="clearBtn">Clear this conversation</button>
+      </div>
+      <p class="note">This first version keeps conversation history in the current page only. Messages are not yet synchronized between separate staff and patient devices.</p>
+    </section>
+  </div>
+</main>
+<script>
+(() => {
+  const input = document.getElementById('customMessage');
+  const patientInput = document.getElementById('patientMessage');
+  const patientStatus = document.getElementById('patientStatus');
+  const history = document.getElementById('history');
+  const video = document.getElementById('signVideo');
+  const videoStatus = document.getElementById('videoStatus');
+
+  const signClips = {
+    'hello': 'hello.mp4',
+    'do you need help?': 'do_you_need_help.mp4',
+    'please call a doctor': 'please_call_a_doctor.mp4',
+    'please sit down': 'please_sit_down.mp4',
+    'are you in pain?': 'are_you_in_pain.mp4',
+    'i will call a nurse': 'i_will_call_a_nurse.mp4',
+    'do you need water?': 'do_you_need_water.mp4',
+    'yes': 'yes.mp4',
+    'no': 'no.mp4',
+    'thank you': 'thank_you.mp4'
+  };
+
+  function speak(text, statusElement) {
+    if (!('speechSynthesis' in window)) {
+      if (statusElement) statusElement.textContent = 'Speech is not supported in this browser.';
+      return;
+    }
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'en-IN';
+    utterance.rate = 0.9;
+    if (statusElement) {
+      utterance.onstart = () => statusElement.textContent = 'Speaking...';
+      utterance.onend = () => statusElement.textContent = 'Finished speaking.';
+      utterance.onerror = () => statusElement.textContent = 'Speech could not start.';
+    }
+    window.speechSynthesis.speak(utterance);
+  }
+
+  function checkClip(message) {
+    video.pause();
+    video.removeAttribute('src');
+    video.load();
+    video.style.display = 'none';
+
+    const filename = signClips[message.trim().toLowerCase()];
+    if (!filename) {
+      videoStatus.textContent = 'No matching sign video is mapped to this message yet.';
+      return;
+    }
+
+    video.src = '/static/sign_videos/' + filename;
+    video.onerror = () => {
+      video.style.display = 'none';
+      videoStatus.textContent = 'No matching video is installed yet. Add a real ISL clip at static/sign_videos/' + filename + '.';
+    };
+    video.onloadeddata = () => {
+      video.style.display = 'block';
+      videoStatus.textContent = 'Matching clip loaded. Press play to show it to the patient.';
+    };
+    videoStatus.textContent = 'Checking for a matching prerecorded sign video...';
+    video.load();
+  }
+
+  function addMessage(message, sender) {
+    const text = message.trim();
+    if (!text) return false;
+
+    const empty = document.getElementById('emptyHistory');
+    if (empty) empty.remove();
+
+    const item = document.createElement('div');
+    item.className = 'message ' + (sender === 'Patient' ? 'patient-message' : 'staff-message');
+
+    const label = document.createElement('small');
+    label.textContent = sender + ' ? ' +
+      new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+
+    const body = document.createElement('strong');
+    body.textContent = text;
+
+    const actions = document.createElement('div');
+    actions.className = 'message-actions';
+
+    const speakButton = document.createElement('button');
+    speakButton.type = 'button';
+    speakButton.className = 'secondary';
+    speakButton.textContent = 'Speak this message';
+    speakButton.addEventListener('click', () => speak(text, patientStatus));
+
+    actions.appendChild(speakButton);
+    item.append(label, body, actions);
+    history.appendChild(item);
+    history.scrollTop = history.scrollHeight;
+
+    if (sender === 'Hospital staff') checkClip(text);
+    return true;
+  }
+
+  document.querySelectorAll('[data-message]').forEach(button => {
+    button.addEventListener('click', () => {
+      addMessage(button.dataset.message, 'Hospital staff');
+    });
+  });
+
+  document.getElementById('sendBtn').addEventListener('click', () => {
+    const text = input.value.trim();
+    if (!text) {
+      input.focus();
+      return;
+    }
+    if (addMessage(text, 'Hospital staff')) input.value = '';
+  });
+
+  input.addEventListener('keydown', event => {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      document.getElementById('sendBtn').click();
+    }
+  });
+
+  document.getElementById('speakBtn').addEventListener('click', () => {
+    const latest = history.querySelector('.message:last-of-type strong');
+    if (latest) speak(latest.textContent, patientStatus);
+    else patientStatus.textContent = 'Add a message before speaking.';
+  });
+
+  document.getElementById('sendPatientBtn').addEventListener('click', () => {
+    const text = patientInput.value.trim();
+    if (!text) {
+      patientStatus.textContent = 'Type a message before sending.';
+      patientInput.focus();
+      return;
+    }
+    if (addMessage(text, 'Patient')) {
+      patientInput.value = '';
+      patientStatus.textContent = 'Patient message added to this conversation. It is not yet delivered to a separate staff device.';
+    }
+  });
+
+  patientInput.addEventListener('keydown', event => {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      document.getElementById('sendPatientBtn').click();
+    }
+  });
+
+  document.getElementById('clearBtn').addEventListener('click', () => {
+    window.speechSynthesis?.cancel();
+    history.replaceChildren();
+    const placeholder = document.createElement('div');
+    placeholder.className = 'empty';
+    placeholder.id = 'emptyHistory';
+    placeholder.textContent = 'No messages yet. Select a phrase or type a message to begin.';
+    history.appendChild(placeholder);
+
+    input.value = '';
+    patientInput.value = '';
+    video.pause();
+    video.removeAttribute('src');
+    video.load();
+    video.style.display = 'none';
+    videoStatus.textContent = 'Choose a staff message to check for a matching sign video.';
+    patientStatus.textContent = 'Messages appear in this page conversation.';
+  });
+})();
+</script>
+</body>
+</html>

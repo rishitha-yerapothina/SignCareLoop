@@ -1,4 +1,5 @@
 from flask import Flask, render_template, Response, jsonify, request
+from werkzeug.utils import secure_filename
 import cv2
 import numpy as np
 import torch
@@ -7,6 +8,7 @@ import threading
 import time
 import os
 import sys
+import tempfile
 from collections import deque, Counter
 
 # ── JAX compatibility patch ──────────────────────────────────────────
@@ -52,6 +54,7 @@ except ImportError as e:
     print(f"⚠️ MediaPipe not available: {e}")
 
 app = Flask(__name__)
+app.config['MAX_CONTENT_LENGTH'] = 64 * 1024 * 1024
 
 # ==========================================
 # DYNAMIC MODE CONFIG (ISL Gestures - LSTM)
@@ -290,7 +293,10 @@ def generate_dynamic_frames():
                 
                 if camera_active and dynamic_cap is None:
                     with cap_lock:
-                        dynamic_cap = cv2.VideoCapture(0)
+                        dynamic_cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+                        dynamic_cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+                        dynamic_cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+                        dynamic_cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
                         if not dynamic_cap.isOpened():
                             print("❌ Failed to open dynamic camera")
                             with dynamic_lock:
@@ -387,19 +393,18 @@ def generate_dynamic_frames():
                                 
                                 if local_confidence > DYNAMIC_CONFIDENCE_THRESHOLD:
                                     local_prediction = DYNAMIC_CLASSES[max_idx]
-                                
-                                prediction_buffer.append(local_prediction)
-                                
-                                if len(prediction_buffer) > 0:
+                                    prediction_buffer.append(local_prediction)
+
                                     vote_tally = Counter(prediction_buffer).most_common(1)[0]
                                     winning_gesture, winning_votes = vote_tally
+
                                     if winning_votes >= DYNAMIC_VOTING_THRESHOLD:
                                         with dynamic_lock:
                                             prev = dynamic_state["current_prediction"]
                                             dynamic_state["current_prediction"] = winning_gesture
                                             dynamic_state["confidence"] = local_confidence
                                             dynamic_state["all_probs"] = all_probs
-                                            
+
                                             if winning_gesture not in ["Idle", "Waiting...", "Thinking..."] and winning_gesture != prev:
                                                 entry = {
                                                     "gesture": winning_gesture,
@@ -448,7 +453,10 @@ def generate_static_frames():
             if camera_should_run:
                 with cap_lock:
                     if static_cap is None or not static_cap.isOpened():
-                        static_cap = cv2.VideoCapture(0)
+                        static_cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+                        static_cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+                        static_cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+                        static_cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
                         if not static_cap.isOpened():
                             print("❌ Failed to open static camera")
                             with static_lock:
@@ -597,6 +605,206 @@ def static_session_analytics():
 @app.route('/static/dataset-analytics')
 def static_dataset_analytics():
     return render_template('static_data_analytics.html')
+
+
+
+@app.route('/staff/patient')
+def staff_patient():
+    return render_template('staff_patient.html')
+
+
+@app.route('/dynamic/video-upload')
+def dynamic_video_upload():
+    return render_template(
+        'video_upload.html',
+        model_loaded=DYNAMIC_MODEL_LOADED
+    )
+
+
+@app.route('/dynamic/api/video-upload', methods=['POST'])
+def dynamic_video_upload_api():
+    if not DYNAMIC_MODEL_LOADED or dynamic_model is None:
+        return jsonify({
+            "success": False,
+            "error": "The dynamic sign recognition model is not loaded."
+        }), 503
+
+    if not MEDIAPIPE_AVAILABLE or mp_pose is None or mp_hands is None:
+        return jsonify({
+            "success": False,
+            "error": "MediaPipe is not available on the server."
+        }), 503
+
+    uploaded = request.files.get("video")
+    if uploaded is None or not uploaded.filename:
+        return jsonify({
+            "success": False,
+            "error": "Choose a video file first."
+        }), 400
+
+    safe_name = secure_filename(uploaded.filename)
+    extension = os.path.splitext(safe_name)[1].lower()
+    allowed_extensions = {".mp4", ".avi", ".mov", ".webm"}
+
+    if extension not in allowed_extensions:
+        return jsonify({
+            "success": False,
+            "error": "Unsupported format. Upload an MP4, AVI, MOV, or WebM video."
+        }), 400
+
+    temp_path = None
+    cap = None
+
+    try:
+        with tempfile.NamedTemporaryFile(
+            prefix="signcare_upload_",
+            suffix=extension,
+            delete=False
+        ) as temp_file:
+            temp_path = temp_file.name
+
+        uploaded.save(temp_path)
+
+        cap = cv2.VideoCapture(temp_path)
+        if not cap.isOpened():
+            return jsonify({
+                "success": False,
+                "error": "OpenCV could not read this video. Try exporting it as MP4."
+            }), 422
+
+        frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        fps = float(cap.get(cv2.CAP_PROP_FPS))
+
+        if frame_count < 10 or fps <= 0:
+            return jsonify({
+                "success": False,
+                "error": "The video is too short or its frame rate could not be read. Use a valid video of at least 10 frames."
+            }), 422
+
+        duration = frame_count / fps
+        if duration > 30:
+            return jsonify({
+                "success": False,
+                "error": "For this prototype, upload a video no longer than 30 seconds showing one sign."
+            }), 422
+
+        frame_indices = np.linspace(
+            0, frame_count - 1, DYNAMIC_SEQUENCE_LENGTH
+        ).astype(int)
+
+        sequence = []
+        previous_landmarks = None
+        hand_frames = 0
+
+        with mp_pose.Pose(
+            min_detection_confidence=0.5,
+            min_tracking_confidence=0.5
+        ) as pose, mp_hands.Hands(
+            max_num_hands=2,
+            min_detection_confidence=0.5,
+            min_tracking_confidence=0.5
+        ) as hands:
+
+            for frame_index in frame_indices:
+                cap.set(cv2.CAP_PROP_POS_FRAMES, int(frame_index))
+                ok, frame = cap.read()
+
+                if not ok:
+                    continue
+
+                rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                rgb.flags.writeable = False
+
+                pose_result = pose.process(rgb)
+                hand_result = hands.process(rgb)
+
+                if hand_result.multi_hand_landmarks:
+                    hand_frames += 1
+
+                keypoints = extract_keypoints(pose_result, hand_result)
+                normalized = normalize_frame(keypoints)
+                smoothed = apply_ema(
+                    normalized,
+                    previous_landmarks,
+                    DYNAMIC_EMA_ALPHA
+                )
+                previous_landmarks = smoothed
+                sequence.append(smoothed)
+
+        cap.release()
+        cap = None
+
+        if len(sequence) != DYNAMIC_SEQUENCE_LENGTH:
+            return jsonify({
+                "success": False,
+                "error": "Could not read enough frames from the video. Try another file."
+            }), 422
+
+        if hand_frames < 3:
+            return jsonify({
+                "success": False,
+                "error": "Hands were not detected clearly enough. Keep your hands visible and try again."
+            }), 422
+
+        sequence_array = np.asarray(sequence, dtype=np.float32)
+        input_tensor = torch.tensor(
+            sequence_array,
+            dtype=torch.float32
+        ).unsqueeze(0).to(device)
+
+        with torch.no_grad():
+            logits = dynamic_model(input_tensor)
+            probabilities = torch.softmax(logits, dim=1).cpu().numpy()[0]
+
+        best_index = int(np.argmax(probabilities))
+        confidence = float(probabilities[best_index])
+        prediction = DYNAMIC_CLASSES[best_index]
+        top_indices = np.argsort(probabilities)[::-1][:5]
+
+        top_candidates = [
+            {
+                "label": DYNAMIC_CLASSES[int(index)],
+                "text": DYNAMIC_CLASSES[int(index)].replace("_", " "),
+                "confidence": round(float(probabilities[index]) * 100, 1)
+            }
+            for index in top_indices
+        ]
+
+        return jsonify({
+            "success": True,
+            "prediction": prediction,
+            "text": prediction.replace("_", " "),
+            "confidence": round(confidence * 100, 1),
+            "accepted": confidence > DYNAMIC_CONFIDENCE_THRESHOLD,
+            "threshold": round(DYNAMIC_CONFIDENCE_THRESHOLD * 100, 1),
+            "hand_frames": hand_frames,
+            "sampled_frames": len(sequence),
+            "duration_seconds": round(duration, 2),
+            "top_candidates": top_candidates,
+            "message": (
+                "Prediction passed the confidence threshold."
+                if confidence > DYNAMIC_CONFIDENCE_THRESHOLD
+                else "Low confidence. Treat this result as uncertain and try a clearer video."
+            )
+        })
+
+    except Exception as error:
+        print(f"Video upload inference error: {error}")
+        return jsonify({
+            "success": False,
+            "error": "Video processing failed. Check the Flask terminal for details."
+        }), 500
+
+    finally:
+        if cap is not None:
+            cap.release()
+
+        if temp_path and os.path.exists(temp_path):
+            try:
+                os.remove(temp_path)
+            except OSError:
+                pass
+
 
 @app.route('/dynamic/video_feed')
 def dynamic_video_feed():

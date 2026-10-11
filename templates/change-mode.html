@@ -1,162 +1,299 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>RTSLR - Choose Mode</title>
+
+  <title>Choose Recognition Mode | SignCareLoop</title>
+  <meta name="description" content="Choose a sign recognition mode in SignCareLoop, an assistive hospital communication prototype." />
+
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Anta:wght@400;700;800&family=Ubuntu:wght@300;400;500;700&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
   <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+
   <style>
-    body { font-family: 'Ubuntu', sans-serif; background: #04070f; color: #e8edf5; }
-    .font-display { font-family: 'Anta', sans-serif; }
-    .font-mono { font-family: 'DM Mono', monospace; }
-    
-    body::before {
-      content: ''; position: fixed; inset: 0;
-      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
-      pointer-events: none; z-index: 0;
+    :root {
+      --cream: #f8f7f0;
+      --green: #176b4d;
+      --green-dark: #163d30;
+      --green-light: #e4f2e7;
+      --muted: #64756b;
+      --border: #dce7dd;
     }
-    
-    @keyframes pulse-dot { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(1.4)} }
-    .animate-pulse-dot { animation: pulse-dot 2s infinite; }
-    
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--cream);
+      color: var(--green-dark);
+      font-family: 'DM Sans', sans-serif;
+    }
+
+    h1, h2, h3, .brand {
+      font-family: 'Manrope', sans-serif;
+    }
+
     .mode-card {
-      transition: all 0.3s ease;
-      cursor: pointer;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      transition: transform .25s ease, box-shadow .25s ease,
+                  border-color .25s ease;
     }
-    
+
     .mode-card:hover {
-      transform: translateY(-8px);
-      box-shadow: 0 20px 40px rgba(0,229,255,0.2);
+      transform: translateY(-5px);
+      border-color: #91c5a4;
+      box-shadow: 0 18px 42px rgba(22, 61, 48, .09);
+    }
+
+    .mode-card:focus-visible,
+    a:focus-visible {
+      outline: 3px solid #36996d;
+      outline-offset: 4px;
+    }
+
+    .status-dot {
+      display: inline-block;
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      margin-right: 8px;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: .01ms !important;
+        transition-duration: .01ms !important;
+        scroll-behavior: auto !important;
+      }
     }
   </style>
 </head>
-<body class="min-h-screen flex items-center justify-center p-6">
 
-  <div class="max-w-4xl w-full">
-    <!-- Header -->
-    <div class="text-center mb-12">
-      <div class="flex items-center justify-center gap-3 mb-4">
-        <div class="w-3 h-3 bg-[#00e5ff] rounded-full shadow-[0_0_12px_#00e5ff] animate-pulse-dot"></div>
-        <h1 class="text-4xl font-extrabold font-display bg-gradient-to-r from-white via-white to-[#00e5ff] bg-clip-text text-transparent">
-          <a href="/">RTSLR</a>
-        </h1>
+<body class="min-h-screen flex flex-col">
+
+  <!-- Navigation -->
+  <header class="border-b" style="border-color: var(--border); background: rgba(248,247,240,.95);">
+    <nav class="max-w-6xl mx-auto px-5 md:px-8 py-5 flex items-center justify-between gap-4">
+      <a href="/" class="brand flex items-center gap-3 no-underline" style="color: var(--green-dark);">
+        <span class="w-10 h-10 rounded-xl flex items-center justify-center"
+              style="background: var(--green); color: white;">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+               stroke-linejoin="round" aria-hidden="true">
+            <path d="M8 12V5a1.5 1.5 0 0 1 3 0v5-7a1.5 1.5 0 0 1 3 0v7-5a1.5 1.5 0 0 1 3 0v7-3a1.5 1.5 0 0 1 3 0v6c0 4-2.5 7-7 7h-1c-2 0-3.5-1-5-3l-3-4a1.7 1.7 0 0 1 2.5-2.2L8 15"/>
+          </svg>
+        </span>
+        <span class="text-xl font-extrabold tracking-tight">SignCareLoop</span>
+      </a>
+
+      <a href="/" class="text-sm font-semibold px-4 py-2 rounded-full"
+         style="color: var(--green); background: var(--green-light);">
+        Home
+      </a>
+    </nav>
+  </header>
+
+  <main class="flex-1 w-full max-w-6xl mx-auto px-5 md:px-8 py-12 md:py-20">
+
+    <!-- Page introduction -->
+    <section class="text-center max-w-3xl mx-auto mb-12 md:mb-16">
+      <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold mb-6"
+           style="background: var(--green-light); color: var(--green);">
+        <span class="status-dot" style="background: #299766;"></span>
+        Accessible healthcare communication
       </div>
-      <p class="text-white/50 text-lg">Real-Time Sign Language Recognition</p>
-      <p class="text-[#5a6a82] text-sm mt-2 font-mono">Choose your recognition mode</p>
-    </div>
 
-    <!-- Mode Selection Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-      
-      <!-- Dynamic Mode Card -->
-      <a href="/dynamic/inference" class="mode-card block bg-[#101828] border border-[#1e2d47] rounded-2xl p-8 hover:border-[#00e5ff]/50 relative overflow-hidden group">
-        <div class="absolute top-0 right-0 w-32 h-32 bg-[#00e5ff]/5 rounded-full -mr-16 -mt-16 transition-all group-hover:bg-[#00e5ff]/10"></div>
-        
-        <div class="relative z-10">
-          <div class="flex items-center gap-3 mb-4">
-            <div class="w-12 h-12 rounded-xl bg-[#00e5ff]/10 flex items-center justify-center">
-              <svg class="w-6 h-6 text-[#00e5ff]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-              </svg>
-            </div>
-            <h2 class="text-2xl font-bold font-display text-[#00e5ff]">Dynamic Mode</h2>
-          </div>
-          
-          <p class="text-[#5a6a82] mb-6 leading-relaxed">
-            Real-time ISL gesture recognition using LSTM neural networks. Detects full words and sentences with continuous sign language.
-          </p>
-          
-          <div class="space-y-2 mb-6">
-            <div class="flex items-center gap-2 text-sm">
-              <span class="w-2 h-2 rounded-full {{ 'bg-[#00ffa3]' if dynamic_loaded else 'bg-[#ff4444]' }}"></span>
-              <span class="font-mono text-[#e8edf5]">
-                Model: {{ 'Loaded' if dynamic_loaded else 'Demo Mode' }}
-              </span>
-            </div>
-            <div class="flex items-center gap-2 text-sm">
-              <span class="w-2 h-2 rounded-full bg-[#00e5ff]"></span>
-              <span class="font-mono text-[#e8edf5]">{{ dynamic_classes }} gesture classes</span>
-            </div>
-            <div class="flex items-center gap-2 text-sm">
-              <span class="w-2 h-2 rounded-full bg-[#7c3aed]"></span>
-              <span class="font-mono text-[#e8edf5]">LSTM Architecture</span>
-            </div>
-          </div>
-          
-          <div class="flex items-center justify-between pt-4 border-t border-[#1e2d47]">
-            <span class="text-[#5a6a82] text-sm">Continuous gestures</span>
-            <svg class="w-5 h-5 text-[#00e5ff] transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-            </svg>
-          </div>
-        </div>
-      </a>
+      <h1 class="text-4xl md:text-6xl font-extrabold tracking-tight leading-tight mb-5"
+          style="color: var(--green-dark);">
+        Choose your <span style="color: var(--green);">recognition mode</span>
+      </h1>
 
-      <!-- Static Mode Card -->
-      <a href="/static/inference" class="mode-card block bg-[#101828] border border-[#1e2d47] rounded-2xl p-8 hover:border-[#00ffa3]/50 relative overflow-hidden group">
-        <div class="absolute top-0 right-0 w-32 h-32 bg-[#00ffa3]/5 rounded-full -mr-16 -mt-16 transition-all group-hover:bg-[#00ffa3]/10"></div>
-        
-        <div class="relative z-10">
-          <div class="flex items-center gap-3 mb-4">
-            <div class="w-12 h-12 rounded-xl bg-[#00ffa3]/10 flex items-center justify-center">
-              <svg class="w-6 h-6 text-[#00ffa3]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z"></path>
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2"></path>
-              </svg>
-            </div>
-            <h2 class="text-2xl font-bold font-display text-[#00ffa3]">Static Mode</h2>
-          </div>
-          
-          <p class="text-[#5a6a82] mb-6 leading-relaxed">
-            Fast letter and number recognition using scikit-learn. Perfect for spelling words character by character.
-          </p>
-          
-          <div class="space-y-2 mb-6">
-            <div class="flex items-center gap-2 text-sm">
-              <span class="w-2 h-2 rounded-full {{ 'bg-[#00ffa3]' if static_loaded else 'bg-[#ff4444]' }}"></span>
-              <span class="font-mono text-[#e8edf5]">
-                Model: {{ 'Loaded' if static_loaded else 'Demo Mode' }}
-              </span>
-            </div>
-            <div class="flex items-center gap-2 text-sm">
-              <span class="w-2 h-2 rounded-full bg-[#00ffa3]"></span>
-              <span class="font-mono text-[#e8edf5]">{{ static_classes }} classes (A-Z, 0-9)</span>
-            </div>
-            <div class="flex items-center gap-2 text-sm">
-              <span class="w-2 h-2 rounded-full bg-[#ff8c42]"></span>
-              <span class="font-mono text-[#e8edf5]">Turbo Mode</span>
-            </div>
-          </div>
-          
-          <div class="flex items-center justify-between pt-4 border-t border-[#1e2d47]">
-            <span class="text-[#5a6a82] text-sm">Individual letters</span>
-            <svg class="w-5 h-5 text-[#00ffa3] transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-            </svg>
-          </div>
-        </div>
-      </a>
-    </div>
-
-    <!-- Footer Info -->
-    <div class="mt-12 text-center">
-      <p class="text-[#5a6a82] text-sm font-mono">
-        Both modes use MediaPipe Holistic for hand tracking
+      <p class="text-base md:text-lg leading-relaxed"
+         style="color: var(--muted);">
+        Select how you want to communicate. SignCareLoop is designed to help
+        bridge communication gaps between sign-language users and healthcare staff.
       </p>
-      <div class="flex items-center justify-center gap-4 mt-4">
-        <div class="flex items-center gap-2 text-xs text-[#5a6a82]">
-          <div class="w-2 h-2 rounded-full bg-[#00e5ff]"></div>
-          <span>Dynamic</span>
+    </section>
+
+    <!-- Existing modes -->
+    <section class="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8"
+             aria-label="Recognition modes">
+
+      <!-- Dynamic mode -->
+      <a href="/dynamic/inference"
+         class="mode-card group block p-7 md:p-9 no-underline">
+
+        <div class="flex items-start justify-between gap-4 mb-7">
+          <div class="w-14 h-14 rounded-2xl flex items-center justify-center"
+               style="background: var(--green-light); color: var(--green);">
+            <svg width="29" height="29" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                 stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 3v3"/>
+              <path d="M12 18v3"/>
+              <path d="M3 12h3"/>
+              <path d="M18 12h3"/>
+              <path d="m5.6 5.6 2.1 2.1"/>
+              <path d="m16.3 16.3 2.1 2.1"/>
+              <path d="m18.4 5.6-2.1 2.1"/>
+              <path d="m7.7 16.3-2.1 2.1"/>
+              <circle cx="12" cy="12" r="5"/>
+            </svg>
+          </div>
+
+          <span class="text-xs font-bold uppercase tracking-wider px-3 py-2 rounded-full"
+                style="background: #e4f2e7; color: #176b4d;">
+            Live camera
+          </span>
         </div>
-        <div class="flex items-center gap-2 text-xs text-[#5a6a82]">
-          <div class="w-2 h-2 rounded-full bg-[#00ffa3]"></div>
-          <span>Static</span>
+
+        <p class="text-sm font-bold uppercase tracking-widest mb-2"
+           style="color: var(--green);">Mode 01</p>
+
+        <h2 class="text-2xl md:text-3xl font-extrabold mb-4"
+            style="color: var(--green-dark);">
+          Dynamic Recognition
+        </h2>
+
+        <p class="leading-relaxed mb-7" style="color: var(--muted);">
+          Use a live camera to recognize sequences of movements. The existing
+          dynamic model and inference workflow are accessed through this mode.
+        </p>
+
+        <div class="rounded-xl p-4 mb-7" style="background: #f5f8f3;">
+          <div class="flex items-center gap-3 mb-3">
+            <span class="status-dot"
+                  style="background: {{ '#239b63' if dynamic_loaded else '#d69b2d' }};"></span>
+            <span class="text-sm font-semibold" style="color: var(--green-dark);">
+              Model status:
+              {{ 'Loaded' if dynamic_loaded else 'Demo Mode / Model Unavailable' }}
+            </span>
+          </div>
+
+          <div class="flex items-center gap-3">
+            <span class="status-dot" style="background: #91b9a0;"></span>
+            <span class="text-sm" style="color: var(--muted);">
+              {{ dynamic_classes }} gesture classes
+            </span>
+          </div>
         </div>
+
+        <div class="flex items-center justify-between border-t pt-5"
+             style="border-color: var(--border);">
+          <span class="font-bold text-sm" style="color: var(--green);">
+            Open dynamic mode
+          </span>
+          <span class="text-xl transition-transform group-hover:translate-x-1"
+                style="color: var(--green);" aria-hidden="true">→</span>
+        </div>
+      </a>
+
+      <!-- Static mode -->
+      <a href="/static/inference"
+         class="mode-card group block p-7 md:p-9 no-underline">
+
+        <div class="flex items-start justify-between gap-4 mb-7">
+          <div class="w-14 h-14 rounded-2xl flex items-center justify-center"
+               style="background: #edf0fa; color: #5366a5;">
+            <svg width="29" height="29" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                 stroke-linejoin="round" aria-hidden="true">
+              <rect x="3" y="3" width="18" height="18" rx="4"/>
+              <path d="M8 8h.01M12 8h.01M16 8h.01"/>
+              <path d="M8 12h.01M12 12h.01M16 12h.01"/>
+              <path d="M8 16h.01M12 16h.01M16 16h.01"/>
+            </svg>
+          </div>
+
+          <span class="text-xs font-bold uppercase tracking-wider px-3 py-2 rounded-full"
+                style="background: #edf0fa; color: #5366a5;">
+            Letter recognition
+          </span>
+        </div>
+
+        <p class="text-sm font-bold uppercase tracking-widest mb-2"
+           style="color: #5366a5;">Mode 02</p>
+
+        <h2 class="text-2xl md:text-3xl font-extrabold mb-4"
+            style="color: var(--green-dark);">
+          Static Recognition
+        </h2>
+
+        <p class="leading-relaxed mb-7" style="color: var(--muted);">
+          Access the existing static recognition workflow for individual
+          hand signs. This mode can be used to explore the static model's
+          supported classes.
+        </p>
+
+        <div class="rounded-xl p-4 mb-7" style="background: #f5f8f3;">
+          <div class="flex items-center gap-3 mb-3">
+            <span class="status-dot"
+                  style="background: {{ '#239b63' if static_loaded else '#d69b2d' }};"></span>
+            <span class="text-sm font-semibold" style="color: var(--green-dark);">
+              Model status:
+              {{ 'Loaded' if static_loaded else 'Demo Mode / Model Unavailable' }}
+            </span>
+          </div>
+
+          <div class="flex items-center gap-3">
+            <span class="status-dot" style="background: #91b9a0;"></span>
+            <span class="text-sm" style="color: var(--muted);">
+              {{ static_classes }} classes
+            </span>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between border-t pt-5"
+             style="border-color: var(--border);">
+          <span class="font-bold text-sm" style="color: #5366a5;">
+            Open static mode
+          </span>
+          <span class="text-xl transition-transform group-hover:translate-x-1"
+                style="color: #5366a5;" aria-hidden="true">→</span>
+        </div>
+      </a>
+
+    </section>
+
+    <!-- Important prototype note -->
+    <section class="mt-10 rounded-2xl border p-5 md:p-6 flex items-start gap-4"
+             style="background: #fffdf7; border-color: #e9dfc3;">
+      <div class="text-xl" aria-hidden="true">ⓘ</div>
+      <div>
+        <h3 class="font-bold mb-1" style="color: var(--green-dark);">
+          About this prototype
+        </h3>
+        <p class="text-sm leading-relaxed" style="color: var(--muted);">
+          Recognition depends on the models and classes available in this
+          installation. SignCareLoop is a prototype, not a substitute for a
+          qualified interpreter or professional medical assessment.
+        </p>
       </div>
+    </section>
+
+    <div class="text-center mt-10">
+      <a href="/" class="text-sm font-semibold hover:underline"
+         style="color: var(--green);">
+        ← Back to SignCareLoop home
+      </a>
     </div>
-  </div>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="border-t py-6 px-5 text-center"
+          style="border-color: var(--border);">
+    <p class="text-sm" style="color: var(--muted);">
+      <span class="font-bold" style="color: var(--green-dark);">SignCareLoop</span>
+      · Designed for more accessible healthcare communication
+    </p>
+  </footer>
 
 </body>
 </html>

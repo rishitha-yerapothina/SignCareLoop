@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SignCareLoop | Video Sign Recognition</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #17352c;
+      --muted: #64776f;
+      --green: #176b50;
+      --line: #dce8e1;
+      --paper: #f5f9f6;
+      --white: #ffffff;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: Inter, "Segoe UI", Arial, sans-serif;
+    }
+    header {
+      background: var(--white);
+      border-bottom: 1px solid var(--line);
+      padding: 18px 5%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .brand { font-size: 20px; font-weight: 800; }
+    .brand span { color: var(--green); }
+    a { color: var(--green); font-weight: 700; text-decoration: none; }
+    main { max-width: 1050px; margin: 34px auto; padding: 0 18px 40px; }
+    .eyebrow {
+      color: var(--green);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+    }
+    h1 { margin: 8px 0; font-size: clamp(28px, 4vw, 40px); }
+    .intro { color: var(--muted); line-height: 1.65; max-width: 720px; }
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr);
+      gap: 20px;
+      margin-top: 26px;
+    }
+    .card {
+      background: var(--white);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 22px;
+      box-shadow: 0 8px 25px rgba(23, 53, 44, .04);
+      min-width: 0;
+    }
+    h2 { font-size: 18px; margin: 0 0 16px; }
+    .drop {
+      border: 2px dashed #b7d2c3;
+      border-radius: 14px;
+      background: #f8fcf9;
+      padding: 24px 16px;
+      text-align: center;
+    }
+    .drop strong { display: block; margin-bottom: 8px; }
+    .drop p, .hint { color: var(--muted); font-size: 13px; line-height: 1.6; }
+    input[type=file] { display: block; width: 100%; margin: 18px 0 10px; }
+    video { display: none; width: 100%; max-height: 360px; background: #10251c; border-radius: 12px; margin-top: 14px; }
+    .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+    button {
+      border: 0;
+      border-radius: 10px;
+      padding: 12px 16px;
+      font-weight: 750;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    button:disabled { opacity: .55; cursor: not-allowed; }
+    .primary { background: var(--green); color: white; }
+    .secondary { background: #eaf3ed; color: var(--ink); }
+    .status { min-height: 24px; margin-top: 14px; font-size: 13px; color: var(--muted); }
+    .result {
+      min-height: 190px;
+      border-radius: 14px;
+      background: #f6faf7;
+      border: 1px solid var(--line);
+      padding: 18px;
+    }
+    .result-label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 1px; font-weight: 800; }
+    #prediction { font-size: clamp(26px, 4vw, 34px); font-weight: 850; margin: 10px 0; overflow-wrap: anywhere; }
+    #confidence { font-weight: 750; }
+    .notice { border-radius: 10px; padding: 11px 12px; margin-top: 12px; font-size: 13px; line-height: 1.5; }
+    .notice.good { background: #e9f7ef; color: #176b50; }
+    .notice.warn { background: #fff5df; color: #79520a; }
+    .notice.error { background: #fff0ed; color: #9d2d1e; }
+    #candidates { margin-top: 18px; }
+    .candidate { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid #edf2ee; font-size: 14px; }
+    .candidate:last-child { border-bottom: 0; }
+    .small { font-size: 12px; color: var(--muted); line-height: 1.6; }
+    @media (max-width: 760px) {
+      .layout { grid-template-columns: 1fr; }
+      main { margin-top: 24px; }
+    }
+  </style>
+</head>
+<body>
+<header>
+  <div class="brand">SignCare<span>Loop</span></div>
+  <a href="/dynamic/inference">Back to live recognition</a>
+</header>
+<main>
+  <div class="eyebrow">Dynamic ISL recognition</div>
+  <h1>Recognize a sign from video</h1>
+  <p class="intro">Upload a short recording. SignCareLoop samples 30 frames, extracts hand and pose landmarks, and runs the existing LSTM model to estimate the sign.</p>
+
+  {% if not model_loaded %}
+  <div class="notice error">The dynamic model is not loaded. Check the Flask terminal before using this page.</div>
+  {% endif %}
+
+  <div class="layout">
+    <section class="card">
+      <h2>1. Choose a video</h2>
+      <div class="drop">
+        <strong>Select a prerecorded sign video</strong>
+        <p>MP4, AVI, MOV, or WebM. Maximum file size: 64 MB. Recommended duration: 1-10 seconds.</p>
+        <input id="videoFile" type="file" accept=".mp4,.avi,.mov,.webm,video/mp4,video/avi,video/quicktime,video/webm">
+      </div>
+      <video id="preview" controls playsinline></video>
+      <div class="actions">
+        <button class="primary" id="analyzeBtn" type="button">Analyze video</button>
+        <button class="secondary" id="clearBtn" type="button">Clear</button>
+      </div>
+      <div id="uploadStatus" class="status" role="status" aria-live="polite">Choose a video to begin.</div>
+      <p class="small">Record one sign at a time. Keep both hands in frame, use good lighting, and avoid cuts or rapid camera movement.</p>
+    </section>
+
+    <section class="card">
+      <h2>2. Recognition result</h2>
+      <div class="result">
+        <div class="result-label">Predicted sign</div>
+        <div id="prediction">No result yet</div>
+        <div id="confidence">Confidence: --</div>
+        <div id="quality" class="notice" hidden></div>
+      </div>
+      <div class="actions">
+        <button class="primary" id="speakBtn" type="button" disabled>Speak result</button>
+        <button class="secondary" id="stopBtn" type="button">Stop speech</button>
+      </div>
+      <div id="speechStatus" class="status" role="status" aria-live="polite"></div>
+      <div id="candidates"></div>
+    </section>
+  </div>
+</main>
+
+<script>
+(() => {
+  const fileInput = document.getElementById('videoFile');
+  const preview = document.getElementById('preview');
+  const analyzeBtn = document.getElementById('analyzeBtn');
+  const clearBtn = document.getElementById('clearBtn');
+  const uploadStatus = document.getElementById('uploadStatus');
+  const prediction = document.getElementById('prediction');
+  const confidence = document.getElementById('confidence');
+  const quality = document.getElementById('quality');
+  const speakBtn = document.getElementById('speakBtn');
+  const speechStatus = document.getElementById('speechStatus');
+  const candidates = document.getElementById('candidates');
+  let previewUrl = null;
+  let resultText = '';
+
+  fileInput.addEventListener('change', () => {
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    previewUrl = null;
+    preview.removeAttribute('src');
+    preview.style.display = 'none';
+    resetResult();
+
+    const file = fileInput.files[0];
+    if (!file) {
+      uploadStatus.textContent = 'Choose a video to begin.';
+      return;
+    }
+
+    const allowed = /\.(mp4|avi|mov|webm)$/i.test(file.name);
+    if (!allowed) {
+      fileInput.value = '';
+      uploadStatus.textContent = 'Unsupported file type. Choose MP4, AVI, MOV, or WebM.';
+      return;
+    }
+    if (file.size > 64 * 1024 * 1024) {
+      fileInput.value = '';
+      uploadStatus.textContent = 'The file exceeds the 64 MB limit.';
+      return;
+    }
+
+    previewUrl = URL.createObjectURL(file);
+    preview.src = previewUrl;
+    preview.style.display = 'block';
+    uploadStatus.textContent = 'Video selected: ' + file.name;
+  });
+
+  function resetResult() {
+    prediction.textContent = 'No result yet';
+    confidence.textContent = 'Confidence: --';
+    quality.hidden = true;
+    quality.className = 'notice';
+    quality.textContent = '';
+    candidates.replaceChildren();
+    speakBtn.disabled = true;
+    resultText = '';
+    speechStatus.textContent = '';
+  }
+
+  analyzeBtn.addEventListener('click', async () => {
+    const file = fileInput.files[0];
+    if (!file) {
+      uploadStatus.textContent = 'Please choose a video first.';
+      return;
+    }
+
+    analyzeBtn.disabled = true;
+    analyzeBtn.textContent = 'Analyzing...';
+    uploadStatus.textContent = 'Processing video landmarks and running the model. Please wait.';
+    resetResult();
+
+    const formData = new FormData();
+    formData.append('video', file);
+
+    try {
+      const response = await fetch('/dynamic/api/video-upload', {
+        method: 'POST',
+        body: formData
+      });
+      const data = await response.json().catch(() => ({
+        success: false,
+        error: 'The server response was not valid JSON. Check the Flask terminal.'
+      }));
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Video analysis failed.');
+      }
+
+      resultText = data.text || data.prediction || '';
+      prediction.textContent = resultText || 'No prediction';
+      confidence.textContent = 'Confidence: ' + data.confidence + '%';
+      quality.hidden = false;
+      quality.className = 'notice ' + (data.accepted ? 'good' : 'warn');
+      quality.textContent = data.message || (data.accepted ? 'Prediction accepted.' : 'Prediction is uncertain.');
+      speakBtn.disabled = !resultText;
+      uploadStatus.textContent =
+        'Analysis complete. Sampled ' + data.sampled_frames +
+        ' frames; hands detected in ' + data.hand_frames + ' sampled frames.';
+
+      const title = document.createElement('h3');
+      title.textContent = 'Top candidate signs';
+      title.style.fontSize = '15px';
+      title.style.margin = '18px 0 4px';
+      candidates.appendChild(title);
+
+      (data.top_candidates || []).forEach(item => {
+        const row = document.createElement('div');
+        row.className = 'candidate';
+        const name = document.createElement('span');
+        name.textContent = item.text;
+        const score = document.createElement('strong');
+        score.textContent = item.confidence + '%';
+        row.append(name, score);
+        candidates.appendChild(row);
+      });
+    } catch (error) {
+      uploadStatus.textContent = error.message;
+      quality.hidden = false;
+      quality.className = 'notice error';
+      quality.textContent = error.message;
+    } finally {
+      analyzeBtn.disabled = false;
+      analyzeBtn.textContent = 'Analyze video';
+    }
+  });
+
+  speakBtn.addEventListener('click', () => {
+    if (!resultText) return;
+    if (!('speechSynthesis' in window) || !('SpeechSynthesisUtterance' in window)) {
+      speechStatus.textContent = 'Speech is not supported in this browser.';
+      return;
+    }
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(resultText);
+    utterance.lang = 'en-IN';
+    utterance.rate = 0.9;
+    utterance.onstart = () => speechStatus.textContent = 'Speaking: ' + resultText;
+    utterance.onend = () => speechStatus.textContent = 'Finished speaking.';
+    utterance.onerror = () => speechStatus.textContent = 'Speech could not start. Try again.';
+    window.speechSynthesis.speak(utterance);
+  });
+
+  document.getElementById('stopBtn').addEventListener('click', () => {
+    if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+    speechStatus.textContent = 'Speech stopped.';
+  });
+
+  clearBtn.addEventListener('click', () => {
+    fileInput.value = '';
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    previewUrl = null;
+    preview.pause();
+    preview.removeAttribute('src');
+    preview.style.display = 'none';
+    uploadStatus.textContent = 'Choose a video to begin.';
+    resetResult();
+  });
+})();
+</script>
+</body>
+</html>

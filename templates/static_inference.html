@@ -1,515 +1,1166 @@
+
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Static Inference — RTSLR</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link
-        href="https://fonts.googleapis.com/css2?family=Anta:wght@400;700;800&family=Ubuntu:wght@300;400;500;700&family=DM+Mono:wght@300;400;500&display=swap"
-        rel="stylesheet" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#f8f7f0">
+    <title>Static Recognition | SignCareLoop</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+
     <style>
+        :root {
+            --cream: #f8f7f0;
+            --white: #ffffff;
+            --green: #176b4d;
+            --green-dark: #124b37;
+            --green-light: #e6f2e8;
+            --green-border: #cfe0d2;
+            --text: #183b2e;
+            --muted: #6c7c71;
+            --red: #c24141;
+            --amber: #a86613;
+            --shadow: 0 8px 28px rgba(25, 75, 52, 0.07);
+        }
+
+        * { box-sizing: border-box; }
+
+        html { scroll-behavior: smooth; }
+
         body {
-            font-family: 'Ubuntu', sans-serif;
-            background: #04070f;
-            color: #e8edf5;
+            margin: 0;
+            font-family: 'DM Sans', sans-serif;
+            background: var(--cream);
+            color: var(--text);
+            min-height: 100vh;
         }
 
-        .font-display {
-            font-family: 'Anta', sans-serif;
-        }
+        button, input { font: inherit; }
 
-        .font-mono {
-            font-family: 'DM Mono', monospace;
-        }
+        button { cursor: pointer; }
 
-        /* Added "data:" prefix for noise overlay */
-        body::before {
-            content: '';
-            position: fixed;
-            inset: 0;
-            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
-            pointer-events: none;
-            z-index: 0;
-        }
+        a { -webkit-tap-highlight-color: transparent; }
 
-        @keyframes pulse-dot {
-
-            0%,
-            100% {
-                opacity: 1;
-                transform: scale(1)
-            }
-
-            50% {
-                opacity: .5;
-                transform: scale(1.4)
-            }
-        }
+        .font-display { font-family: 'Manrope', sans-serif; }
+        .font-mono { font-family: 'DM Mono', monospace; }
 
         .animate-pulse-dot {
             animation: pulse-dot 2s infinite;
         }
 
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: .55; transform: scale(1.2); }
+        }
+
         @keyframes slide-in {
-            from {
-                opacity: 0;
-                transform: translateX(-8px)
-            }
-
-            to {
-                opacity: 1;
-                transform: translateX(0)
-            }
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
-        .animate-slide-in {
-            animation: slide-in 0.3s ease;
-        }
+        .animate-slide-in { animation: slide-in .25s ease; }
 
         @keyframes pulse-add {
-            0% {
-                transform: scale(1);
-                box-shadow: 0 0 0 0 rgba(0, 255, 163, 0.4)
-            }
-
-            70% {
-                transform: scale(1.05);
-                box-shadow: 0 0 0 12px rgba(0, 255, 163, 0)
-            }
-
-            100% {
-                transform: scale(1);
-                box-shadow: 0 0 0 0 rgba(0, 255, 163, 0)
-            }
+            0% { box-shadow: 0 0 0 0 rgba(23, 107, 77, .25); }
+            70% { box-shadow: 0 0 0 8px rgba(23, 107, 77, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(23, 107, 77, 0); }
         }
 
-        .animate-pulse-add {
-            animation: pulse-add 0.6s ease;
+        .animate-pulse-add { animation: pulse-add .6s ease; }
+
+        /* Navigation */
+        .site-nav {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(248, 247, 240, .96);
+            backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--green-border);
+        }
+
+        .nav-inner {
+            min-height: 72px;
+            max-width: 1500px;
+            padding: 12px 32px;
+            margin: auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+        }
+
+        .brand {
+            display: inline-flex;
+            align-items: center;
+            gap: 11px;
+            color: var(--green-dark);
+            text-decoration: none;
+            font: 800 21px 'Manrope', sans-serif;
+            letter-spacing: -.8px;
+            white-space: nowrap;
+        }
+
+        .brand-mark {
+            width: 36px;
+            height: 36px;
+            border-radius: 12px;
+            display: grid;
+            place-items: center;
+            color: white;
+            background: var(--green);
+            font-size: 17px;
+            box-shadow: 0 5px 12px rgba(23, 107, 77, .17);
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .nav-link {
+            color: var(--muted);
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 700;
+            padding: 10px 13px;
+            border-radius: 9px;
+            transition: .2s ease;
+            white-space: nowrap;
+        }
+
+        .nav-link:hover {
+            color: var(--green);
+            background: var(--green-light);
+        }
+
+        .nav-link.active {
+            background: var(--green);
+            color: white;
+        }
+
+        .model-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            border: 1px solid var(--green-border);
+            background: #eef7ef;
+            color: var(--green);
+            border-radius: 100px;
+            padding: 8px 12px;
+            font: 700 10px 'DM Mono', monospace;
+            white-space: nowrap;
+        }
+
+        .status-dot {
+            width: 7px;
+            height: 7px;
+            background: #29965f;
+            border-radius: 50%;
+        }
+
+        #menuToggle {
+            display: none;
+            border: 1px solid var(--green-border);
+            background: white;
+            border-radius: 9px;
+            width: 40px;
+            height: 40px;
+            padding: 9px;
+        }
+
+        #menuToggle span {
+            display: block;
+            height: 2px;
+            background: var(--green-dark);
+            margin: 4px 0;
+            border-radius: 2px;
+            transition: .2s ease;
+        }
+
+        #menuToggle.active span:first-child {
+            transform: translateY(6px) rotate(45deg);
+        }
+
+        #menuToggle.active span:nth-child(2) { opacity: 0; }
+
+        #menuToggle.active span:last-child {
+            transform: translateY(-6px) rotate(-45deg);
+        }
+
+        #mobileMenu { display: none; }
+
+        #mobileMenu.show {
+            display: block;
+            border-top: 1px solid var(--green-border);
+            padding: 10px 18px 18px;
+            animation: slide-in .2s ease;
+        }
+
+        .mobile-link {
+            display: block;
+            padding: 13px 14px;
+            border-radius: 9px;
+            text-decoration: none;
+            color: var(--muted);
+            font-weight: 700;
+            font-size: 14px;
+        }
+
+        .mobile-link.active {
+            background: var(--green);
+            color: white;
+        }
+
+        /* Page heading */
+        .page-header {
+            max-width: 1500px;
+            padding: 46px 32px 28px;
+            margin: auto;
+        }
+
+        .eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 9px;
+            color: var(--green);
+            font: 700 11px 'DM Mono', monospace;
+            text-transform: uppercase;
+            letter-spacing: 1.6px;
+            margin-bottom: 15px;
+        }
+
+        .eyebrow-line {
+            width: 25px;
+            height: 2px;
+            border-radius: 4px;
+            background: var(--green);
+        }
+
+        .page-title {
+            color: var(--green-dark);
+            font: 800 clamp(30px, 4vw, 48px)/1.12 'Manrope', sans-serif;
+            letter-spacing: -1.8px;
+            margin: 0 0 12px;
+        }
+
+        .page-description {
+            color: var(--muted);
+            max-width: 720px;
+            line-height: 1.8;
+            font-size: 15px;
+            margin: 0;
+        }
+
+        .page-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            margin-top: 17px;
+            padding: 7px 11px;
+            border-radius: 8px;
+            background: #edf4e9;
+            border: 1px solid var(--green-border);
+            color: var(--green);
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        /* Main layout */
+        .main-grid {
+            max-width: 1500px;
+            padding: 0 32px 48px;
+            margin: auto;
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(330px, 390px);
+            gap: 22px;
+            align-items: start;
+        }
+
+        .left-column, .right-column {
+            min-width: 0;
+        }
+
+        .right-column {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        .panel {
+            background: var(--white);
+            border: 1px solid var(--green-border);
+            border-radius: 18px;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+        }
+
+        .panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 17px 20px;
+            border-bottom: 1px solid #e7eee6;
+            background: #fcfdf9;
+        }
+
+        .panel-heading {
+            color: var(--green-dark);
+            font: 800 13px 'Manrope', sans-serif;
+        }
+
+        .panel-subheading {
+            color: var(--muted);
+            font-size: 11px;
+            margin-top: 4px;
+        }
+
+        .panel-label {
+            color: var(--muted);
+            font: 700 10px 'DM Mono', monospace;
+            text-transform: uppercase;
+            letter-spacing: .7px;
+        }
+
+        .camera-action {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+            border: 1px solid var(--green-border);
+            background: white;
+            color: var(--green);
+            border-radius: 9px;
+            padding: 9px 12px;
+            font-size: 12px;
+            font-weight: 800;
+            transition: .2s ease;
+        }
+
+        .camera-action:hover {
+            background: var(--green-light);
+            border-color: #9cc7a8;
+        }
+
+        .camera-action:disabled {
+            opacity: .65;
+            cursor: wait;
+        }
+
+        .recording-label {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            color: var(--red);
+            font: 700 10px 'DM Mono', monospace;
+        }
+
+        .recording-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--red);
+        }
+
+        .video-container {
+            position: relative;
+            aspect-ratio: 4 / 3;
+            min-height: 300px;
+            background: #e9eee8;
+            overflow: hidden;
+        }
+
+        #videoFeed {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            inset: 0;
+            display: block;
+            object-fit: contain;
+            background: #e9eee8;
+            transition: opacity .3s ease;
+        }
+
+        .camera-off-overlay {
+            position: absolute;
+            inset: 0;
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            text-align: center;
+            background: #f1f3ec;
+            transition: opacity .25s ease;
+        }
+
+        .camera-off-overlay.is-hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .camera-icon {
+            width: 66px;
+            height: 66px;
+            display: grid;
+            place-items: center;
+            background: white;
+            border: 1px solid var(--green-border);
+            border-radius: 22px;
+            font-size: 29px;
+            margin-bottom: 17px;
+            box-shadow: var(--shadow);
+        }
+
+        .camera-off-title {
+            color: var(--green-dark);
+            font: 800 19px 'Manrope', sans-serif;
+            margin-bottom: 7px;
+        }
+
+        .camera-off-description {
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.7;
+            max-width: 330px;
+            margin-bottom: 17px;
+        }
+
+        .primary-button {
+            border: 1px solid var(--green);
+            border-radius: 9px;
+            padding: 11px 16px;
+            color: white;
+            background: var(--green);
+            font-size: 12px;
+            font-weight: 800;
+            transition: .2s ease;
+        }
+
+        .primary-button:hover {
+            background: var(--green-dark);
         }
 
         .corner {
             position: absolute;
-            width: 20px;
-            height: 20px;
+            z-index: 1;
+            width: 18px;
+            height: 18px;
+            border-color: var(--green);
+            pointer-events: none;
         }
 
-        .corner.tl {
-            top: 12px;
-            left: 12px;
-            border-top: 2px solid #00e5ff;
-            border-left: 2px solid #00e5ff;
+        .corner.tl { top: 13px; left: 13px; border-top: 2px solid; border-left: 2px solid; }
+        .corner.tr { top: 13px; right: 13px; border-top: 2px solid; border-right: 2px solid; }
+        .corner.bl { bottom: 13px; left: 13px; border-bottom: 2px solid; border-left: 2px solid; }
+        .corner.br { bottom: 13px; right: 13px; border-bottom: 2px solid; border-right: 2px solid; }
+
+        .hand-status {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 3;
+            padding: 8px 11px;
+            border: 1px solid var(--green-border);
+            border-radius: 100px;
+            background: rgba(255,255,255,.95);
+            color: var(--muted);
+            font: 700 11px 'DM Mono', monospace;
         }
 
-        .corner.tr {
-            top: 12px;
-            right: 12px;
-            border-top: 2px solid #00e5ff;
-            border-right: 2px solid #00e5ff;
+        .hand-status.detected {
+            color: var(--green);
+            border-color: #9cc7a8;
+            background: #eff8ef;
         }
 
-        .corner.bl {
-            bottom: 12px;
-            left: 12px;
-            border-bottom: 2px solid #00e5ff;
-            border-left: 2px solid #00e5ff;
+        .prediction-overlay {
+            position: absolute;
+            z-index: 3;
+            left: 20px;
+            right: 20px;
+            bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 20px;
+            padding: 14px 18px;
+            border: 1px solid rgba(207, 224, 210, .9);
+            border-radius: 14px;
+            background: rgba(255,255,255,.94);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 6px 24px rgba(17, 55, 37, .09);
+            transition: opacity .25s ease;
         }
 
-        .corner.br {
-            bottom: 12px;
-            right: 12px;
-            border-bottom: 2px solid #00e5ff;
-            border-right: 2px solid #00e5ff;
+        .prediction-overlay.inactive {
+            opacity: .45;
+            pointer-events: none;
         }
 
-        .custom-scroll::-webkit-scrollbar {
-            width: 4px;
+        .prediction-caption {
+            color: var(--muted);
+            font: 700 10px 'DM Mono', monospace;
+            text-transform: uppercase;
+            letter-spacing: .8px;
+            margin-bottom: 4px;
         }
 
-        .custom-scroll::-webkit-scrollbar-track {
-            background: transparent;
+        #predLetter {
+            color: var(--green);
+            font: 800 43px/1 'Manrope', sans-serif;
+            letter-spacing: -1px;
         }
 
-        .custom-scroll::-webkit-scrollbar-thumb {
-            background: #1e2d47;
-            border-radius: 99px;
+        .confidence-number {
+            color: var(--green);
+            font: 700 22px 'DM Mono', monospace;
+            text-align: right;
         }
 
-        @keyframes slideDown {
-            from {
-                opacity: 0;
-                transform: translateY(-10px)
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0)
-            }
+        .confidence-panel {
+            padding: 18px 20px;
+            border-top: 1px solid #e7eee6;
         }
 
-        #mobileMenu.show {
-            display: block;
-            animation: slideDown 0.3s ease-out;
+        .confidence-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 11px;
         }
 
-        #menuToggle.active span:first-child {
-            transform: rotate(45deg) translate(5px, 5px);
+        #confPct {
+            color: var(--green);
+            font: 700 11px 'DM Mono', monospace;
         }
 
-        #menuToggle.active span:nth-child(2) {
-            opacity: 0;
-        }
-
-        #menuToggle.active span:last-child {
-            transform: rotate(-45deg) translate(5px, -5px);
-        }
-
-        body.menu-open {
+        .progress-track {
+            height: 7px;
+            border-radius: 100px;
             overflow: hidden;
+            background: #e8eee6;
         }
 
-        /* Toggle switch styles */
+        #confBar {
+            height: 100%;
+            width: 0;
+            border-radius: inherit;
+            background: linear-gradient(90deg, #7fb68b, var(--green));
+            transition: width .25s ease;
+        }
+
+        .candidate-section {
+            padding: 0 20px 20px;
+        }
+
+        #top5List { padding-top: 12px; }
+
+        .candidate-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .candidate-letter {
+            width: 26px;
+            font: 800 12px 'Manrope', sans-serif;
+        }
+
+        .candidate-track {
+            height: 6px;
+            flex: 1;
+            overflow: hidden;
+            border-radius: 100px;
+            background: #e8eee6;
+        }
+
+        .candidate-fill {
+            height: 100%;
+            border-radius: inherit;
+            background: var(--green);
+        }
+
+        .candidate-value {
+            width: 43px;
+            text-align: right;
+            color: var(--muted);
+            font: 11px 'DM Mono', monospace;
+        }
+
+        .empty-state {
+            padding: 12px 0;
+            color: var(--muted);
+            font-size: 12px;
+            text-align: center;
+        }
+
+        /* Right-side cards */
+        .card-content { padding: 18px; }
+
         .toggle-switch {
             position: relative;
             display: inline-block;
-            width: 44px;
+            width: 42px;
             height: 24px;
+            flex-shrink: 0;
         }
 
         .toggle-switch input {
+            position: absolute;
             opacity: 0;
-            width: 0;
-            height: 0;
+            width: 1px;
+            height: 1px;
         }
 
         .toggle-slider {
             position: absolute;
+            inset: 0;
             cursor: pointer;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: #1e2d47;
-            border-radius: 24px;
-            transition: 0.3s;
+            border-radius: 100px;
+            background: #cbd8ce;
+            transition: .25s ease;
         }
 
-        .toggle-slider:before {
-            position: absolute;
+        .toggle-slider::before {
             content: "";
-            height: 18px;
+            position: absolute;
             width: 18px;
+            height: 18px;
             left: 3px;
             bottom: 3px;
-            background: #fff;
             border-radius: 50%;
-            transition: 0.3s;
+            background: white;
+            box-shadow: 0 1px 4px rgba(0,0,0,.13);
+            transition: .25s ease;
         }
 
-        input:checked+.toggle-slider {
-            background: #00ffa3;
+        .toggle-switch input:checked + .toggle-slider { background: var(--green); }
+        .toggle-switch input:checked + .toggle-slider::before { transform: translateX(18px); }
+
+        .toggle-switch input:focus-visible + .toggle-slider {
+            outline: 3px solid #b6d8bd;
+            outline-offset: 3px;
         }
 
-        input:checked+.toggle-slider:before {
-            transform: translateX(20px);
+        .text-display {
+            min-height: 55px;
+            padding: 14px;
+            border: 1px solid var(--green-border);
+            border-radius: 11px;
+            background: #f8faf5;
+            color: var(--green-dark);
+            font-size: 16px;
+            font-weight: 800;
+            line-height: 1.7;
+            overflow-wrap: anywhere;
+        }
+
+        .text-display.sentence-display {
+            min-height: 75px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .placeholder {
+            color: #87958a;
+            font-size: 12px;
+            font-weight: 500;
+            font-style: italic;
+        }
+
+        .button-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .small-button {
+            border: 1px solid var(--green-border);
+            background: white;
+            color: var(--green);
+            border-radius: 8px;
+            padding: 8px 11px;
+            font-size: 11px;
+            font-weight: 800;
+            transition: .2s ease;
+        }
+
+        .small-button:hover {
+            background: var(--green-light);
+            border-color: #a7c9ae;
+        }
+
+        .small-button.danger {
+            color: var(--red);
+            border-color: #edcccc;
+        }
+
+        .small-button.danger:hover { background: #fff1f1; }
+
+        .small-button.success {
+            color: white;
+            border-color: var(--green);
+            background: var(--green);
+        }
+
+        .small-button.success:hover { background: var(--green-dark); }
+
+        .auto-status {
+            margin-top: 12px;
+            color: var(--green);
+            font: 10px 'DM Mono', monospace;
+        }
+
+        .hidden { display: none !important; }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+        }
+
+        .stat-card {
+            min-width: 0;
+            padding: 14px;
+            border: 1px solid #e2ebe0;
+            background: #f8faf5;
+            border-radius: 12px;
+        }
+
+        .stat-value {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: var(--green);
+            font: 800 27px/1.2 'Manrope', sans-serif;
+            letter-spacing: -1px;
+            margin-bottom: 5px;
+        }
+
+        .stat-caption {
+            color: var(--muted);
+            font: 700 9px 'DM Mono', monospace;
+            text-transform: uppercase;
+            letter-spacing: .45px;
+        }
+
+        #historyFeed {
+            max-height: 300px;
+            overflow-y: auto;
+            padding: 0 18px;
+        }
+
+        .history-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 0;
+            border-bottom: 1px solid #edf1eb;
+        }
+
+        .history-letter {
+            flex: 1;
+            color: var(--green-dark);
+            font: 800 13px 'Manrope', sans-serif;
+            text-transform: uppercase;
+        }
+
+        .history-confidence {
+            color: var(--green);
+            font: 11px 'DM Mono', monospace;
+        }
+
+        .history-time {
+            color: var(--muted);
+            font: 10px 'DM Mono', monospace;
+        }
+
+        .history-count {
+            color: var(--muted);
+            font: 10px 'DM Mono', monospace;
+        }
+
+        .custom-scroll::-webkit-scrollbar { width: 5px; }
+        .custom-scroll::-webkit-scrollbar-track { background: transparent; }
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background: #cbd9cd;
+            border-radius: 99px;
+        }
+
+        .site-footer {
+            border-top: 1px solid var(--green-border);
+            padding: 20px 32px;
+            color: var(--muted);
+            font-size: 12px;
+            text-align: center;
+        }
+
+        /* Toast messages */
+        .toast-notification {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10001;
+            max-width: calc(100vw - 32px);
+            padding: 12px 17px;
+            border: 1px solid var(--green-border);
+            border-radius: 11px;
+            background: white;
+            color: var(--green-dark);
+            box-shadow: 0 8px 30px rgba(17, 55, 37, .16);
+            font-size: 12px;
+            font-weight: 800;
+            transition: opacity .25s ease;
+        }
+
+        .toast-notification.success { border-color: #a8cfb0; }
+        .toast-notification.error { color: var(--red); border-color: #edcccc; }
+
+        /* Camera permission dialog */
+        .permission-backdrop {
+            position: fixed;
+            inset: 0;
+            z-index: 10000;
+            display: grid;
+            place-items: center;
+            padding: 20px;
+            background: rgba(20, 45, 32, .48);
+            backdrop-filter: blur(4px);
+        }
+
+        .permission-dialog {
+            width: min(100%, 440px);
+            padding: 28px;
+            border: 1px solid var(--green-border);
+            border-radius: 18px;
+            background: var(--cream);
+            box-shadow: 0 20px 70px rgba(0,0,0,.2);
+        }
+
+        .permission-dialog h3 {
+            color: var(--green-dark);
+            font: 800 21px 'Manrope', sans-serif;
+            margin: 0 0 13px;
+        }
+
+        .permission-dialog p {
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.8;
+        }
+
+        .permission-dialog strong { color: var(--green); }
+
+        body.menu-open { overflow: hidden; }
+
+        @media (max-width: 1200px) {
+            .nav-inner { padding-inline: 22px; }
+            .nav-link { padding-inline: 9px; font-size: 12px; }
+            .main-grid { grid-template-columns: minmax(0, 1fr) 340px; padding-inline: 22px; }
+            .page-header { padding-inline: 22px; }
+        }
+
+        @media (max-width: 1000px) {
+            .nav-links { display: none; }
+            #menuToggle { display: block; }
+            .main-grid { grid-template-columns: minmax(0, 1fr); }
+            .right-column { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
+            .right-column > .panel { min-width: 0; }
+            .nav-inner { min-height: 66px; }
+        }
+
+        @media (max-width: 640px) {
+            .nav-inner { padding: 11px 16px; gap: 10px; }
+            .brand { font-size: 18px; gap: 8px; }
+            .brand-mark { width: 32px; height: 32px; border-radius: 10px; }
+            .model-status { padding: 7px 9px; font-size: 9px; }
+            .page-header { padding: 32px 16px 23px; }
+            .page-title { letter-spacing: -1px; }
+            .page-description { font-size: 13px; }
+            .main-grid { padding: 0 16px 32px; gap: 16px; }
+            .right-column { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+            .panel { border-radius: 15px; }
+            .panel-header { padding: 14px; }
+            .video-container { min-height: 280px; aspect-ratio: 4 / 3; }
+            .hand-status { top: 12px; left: 12px; font-size: 10px; }
+            .prediction-overlay { left: 12px; right: 12px; bottom: 12px; padding: 11px 13px; }
+            #predLetter { font-size: 35px; }
+            .confidence-number { font-size: 18px; }
+            .confidence-panel { padding: 16px; }
+            .candidate-section { padding: 0 16px 16px; }
+            .card-content { padding: 15px; }
+            .site-footer { padding: 18px 16px; }
+            .recording-label { display: none; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: .01ms !important;
+                animation-iteration-count: 1 !important;
+                scroll-behavior: auto !important;
+                transition-duration: .01ms !important;
+            }
         }
     </style>
 </head>
 
-<body class="min-h-screen overflow-x-hidden">
-
+<body>
     <!-- Navigation -->
-    <nav class="sticky top-0 z-[100] bg-[#04070f]/85 backdrop-blur-md border-b border-[#1e2d47]">
-        <div class="flex items-center justify-between px-4 sm:px-6 md:px-10 h-16">
-            <a href="/"
-                class="flex items-center gap-2.5 font-extrabold text-xl tracking-tight no-underline text-[#e8edf5] font-display">
-                <div class="w-2.5 h-2.5 bg-[#00e5ff] rounded-full shadow-[0_0_12px_#00e5ff] animate-pulse-dot"></div>
-                RTSLR
+    <nav class="site-nav">
+        <div class="nav-inner">
+            <a href="/" class="brand">
+                <span class="brand-mark">✋</span>
+                <span>SignCareLoop</span>
             </a>
-            <div class="hidden md:flex gap-0.5">
-                <a href="/"
-                    class="px-[18px] py-1.5 rounded-md text-sm font-semibold tracking-wide no-underline text-[#5a6a82] transition-all hover:text-[#e8edf5] hover:bg-[#0b1121]">Index</a>
-                <a href="/change-mode"
-                    class="px-[18px] py-1.5 rounded-md text-sm font-semibold tracking-wide no-underline text-[#5a6a82] transition-all hover:text-[#e8edf5] hover:bg-[#0b1121]">Change
-                    Mode</a>
-                <a href="/static/inference"
-                    class="px-[18px] py-1.5 rounded-md text-sm font-semibold tracking-wide no-underline text-[#00e5ff] bg-[#00e5ff]/10">Inference</a>
-                <a href="/static/session-analytics"
-                    class="px-[18px] py-1.5 rounded-md text-sm font-semibold tracking-wide no-underline text-[#5a6a82] transition-all hover:text-[#e8edf5] hover:bg-[#0b1121]">Session
-                    Analytics</a>
-                <a href="/static/dataset-analytics"
-                    class="px-[18px] py-1.5 rounded-md text-sm font-semibold tracking-wide no-underline text-[#5a6a82] transition-all hover:text-[#e8edf5] hover:bg-[#0b1121]">Dataset
-                    Analytics</a>
+
+            <div class="nav-links">
+                <a href="/" class="nav-link">Home</a>
+                <a href="/change-mode" class="nav-link">Recognition Modes</a>
+                <a href="/static/inference" class="nav-link active">Static Recognition</a>
+                <a href="/static/session-analytics" class="nav-link">Session Analytics</a>
+                <a href="/static/dataset-analytics" class="nav-link">Dataset Analytics</a>
             </div>
+
             <div class="flex items-center gap-3">
-                <div id="modelStatus"
-                    class="flex items-center gap-2 py-1.5 px-3 sm:px-4 rounded-full text-[0.65rem] sm:text-xs font-bold font-mono tracking-wide border border-[#00ffa3]/30 bg-[#00ffa3]/5 text-[#00ffa3]">
-                    <div class="w-1.5 h-1.5 rounded-full bg-[#00ffa3] animate-pulse-dot"></div>
-                    <span class="hidden sm:inline" id="modelStatusText">MODEL ACTIVE</span><span
-                        class="sm:hidden">ACTIVE</span>
+                <div id="modelStatus" class="model-status">
+                    <span class="status-dot animate-pulse-dot"></span>
+                    <span id="modelStatusText">MODEL ACTIVE</span>
                 </div>
-                <button id="menuToggle"
-                    class="md:hidden flex flex-col items-center justify-center w-8 h-8 rounded-md border border-[#1e2d47] bg-transparent hover:border-[#00e5ff] transition-all cursor-pointer">
-                    <span class="block w-4 h-0.5 bg-[#5a6a82] rounded-full transition-all duration-300"></span>
-                    <span class="block w-4 h-0.5 bg-[#5a6a82] rounded-full my-1 transition-all duration-300"></span>
-                    <span class="block w-4 h-0.5 bg-[#5a6a82] rounded-full transition-all duration-300"></span>
+
+                <button id="menuToggle" type="button" aria-label="Toggle navigation menu" aria-expanded="false">
+                    <span></span><span></span><span></span>
                 </button>
             </div>
         </div>
-        <div id="mobileMenu"
-            class="md:hidden hidden bg-[#04070f]/95 backdrop-blur-md border-t border-[#1e2d47] overflow-hidden transition-all duration-300">
-            <div class="flex flex-col py-3 px-4 space-y-1">
-                <a href="/"
-                    class="px-4 py-3 rounded-md text-sm font-semibold tracking-wide no-underline text-[#5a6a82] transition-all hover:text-[#e8edf5] hover:bg-[#0b1121]">Index</a>
-                <a href="/change-mode"
-                    class="px-4 py-3 rounded-md text-sm font-semibold tracking-wide no-underline text-[#5a6a82] transition-all hover:text-[#e8edf5] hover:bg-[#0b1121]">Change
-                    Mode</a>
-                <a href="/static/inference"
-                    class="px-4 py-3 rounded-md text-sm font-semibold tracking-wide no-underline text-[#00e5ff] bg-[#00e5ff]/10">Inference</a>
-                <a href="/static/session-analytics"
-                    class="px-4 py-3 rounded-md text-sm font-semibold tracking-wide no-underline text-[#5a6a82] transition-all hover:text-[#e8edf5] hover:bg-[#0b1121]">Session
-                    Analytics</a>
-                <a href="/static/dataset-analytics"
-                    class="px-4 py-3 rounded-md text-sm font-semibold tracking-wide no-underline text-[#5a6a82] transition-all hover:text-[#e8edf5] hover:bg-[#0b1121]">Dataset
-                    Analytics</a>
-            </div>
+
+        <div id="mobileMenu">
+            <a href="/" class="mobile-link">Home</a>
+            <a href="/change-mode" class="mobile-link">Recognition Modes</a>
+            <a href="/static/inference" class="mobile-link active">Static Recognition</a>
+            <a href="/static/session-analytics" class="mobile-link">Session Analytics</a>
+            <a href="/static/dataset-analytics" class="mobile-link">Dataset Analytics</a>
         </div>
     </nav>
 
-    <!-- Header -->
-    <div class="pt-12 pb-6 px-10 max-w-[1400px] mx-auto">
-        <div
-            class="inline-flex items-center gap-2 text-[0.7rem] tracking-[0.15em] font-bold uppercase font-mono text-[#00e5ff] mb-4">
-            <span class="w-6 h-px bg-[#00e5ff]"></span>
-            Real-Time Letter Recognition
+    <!-- Page heading -->
+    <header class="page-header">
+        <div class="eyebrow">
+            <span class="eyebrow-line"></span>
+            Indian Sign Language Recognition
         </div>
-        <h1
-            class="text-[clamp(2rem,4vw,3.5rem)] font-extrabold leading-[1.05] tracking-[-0.04em] bg-gradient-to-r from-white via-white to-[#00e5ff] bg-clip-text text-transparent mb-3 font-display">
-            Static Inference
-        </h1>
-        <p class="text-white/50 text-base sm:text-lg max-w-2xl">
-            Recognizes A–Z and 0–9 using MediaPipe Holistic + scikit-learn. Build words and sentences in real-time.
+        <h1 class="page-title">Static Recognition</h1>
+        <p class="page-description">
+            Recognize letters and numbers through your webcam. Build words and sentences
+            from detected signs while tracking recognition confidence and session activity.
         </p>
-    </div>
+        <div class="page-tag">✦ MediaPipe Holistic + Machine Learning</div>
+    </header>
 
-    <!-- Main Grid -->
-    <div class="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-6 px-10 pb-12 max-w-[1400px] mx-auto">
-
-        <!-- Video Card -->
-        <div
-            class="bg-[#101828] border border-[#1e2d47] rounded-2xl overflow-hidden relative shadow-[0_0_30px_rgba(0,229,255,0.15)]">
-            <div class="flex items-center justify-between p-4 border-b border-[#1e2d47] bg-white/5">
-                <div class="flex items-center gap-2.5">
+    <!-- Main layout -->
+    <main class="main-grid">
+        <section class="left-column">
+            <!-- Camera panel -->
+            <div class="panel">
+                <div class="panel-header">
                     <div>
-                        <div class="text-sm font-bold tracking-wide font-display">Live Camera Feed</div>
-                        <div class="text-[0.7rem] text-[#5a6a82] font-mono">Holistic landmark detection</div>
+                        <div class="panel-heading">Live Camera Feed</div>
+                        <div class="panel-subheading">Hand and body landmark detection</div>
                     </div>
-                </div>
-                <div class="flex items-center gap-3">
-                    <button id="cameraToggleBtn"
-                        class="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold font-mono tracking-wide border transition-all bg-[#0b1121]/80 border-[#1e2d47] text-[#5a6a82] hover:border-[#00e5ff] hover:text-[#00e5ff]">
-                        <span id="cameraToggleIcon">📷❌</span>
-                        <span id="cameraToggleText">Turn On</span>
-                    </button>
-                    <div class="flex items-center gap-1.5 text-xs font-bold text-[#ff4444] font-mono">
-                        <div class="w-2 h-2 rounded-full bg-[#ff4444] shadow-[0_0_8px_#ff4444] animate-pulse-dot"></div>
-                        REC
-                    </div>
-                </div>
-            </div>
 
-            <div class="relative aspect-[4/3] bg-black" id="videoContainer">
-                <img id="videoFeed" src="" alt="Live Feed"
-                    class="w-full h-full object-cover block transition-opacity duration-300" />
-
-                <div id="cameraOffOverlay"
-                    class="absolute inset-0 flex flex-col items-center justify-center bg-[#0a0a1a]/95 transition-opacity duration-300">
-                    <div class="text-6xl mb-4">📷</div>
-                    <div class="text-lg font-bold text-[#e8edf5] font-display mb-2">Camera is OFF</div>
-                    <div class="text-sm text-[#5a6a82] mb-4 text-center px-4">Click "Turn On" to start recognition</div>
-                    <button id="overlayTurnOn"
-                        class="px-4 py-2 rounded-lg text-sm font-bold bg-[#00e5ff] text-[#04070f] hover:bg-[#00c4d9] transition-all">
-                        Turn On Camera
-                    </button>
-                </div>
-
-                <div class="corner tl"></div>
-                <div class="corner tr"></div>
-                <div class="corner bl"></div>
-                <div class="corner br"></div>
-
-                <div id="predictionOverlay"
-                    class="absolute bottom-4 left-4 right-4 bg-[#04070f]/90 backdrop-blur-md border border-[#00e5ff]/30 rounded-xl p-[14px_18px] flex items-center justify-between opacity-50 pointer-events-none transition-opacity duration-300">
-                    <div>
-                        <div class="text-[0.65rem] text-[#5a6a82] font-mono tracking-[0.08em] uppercase mb-1">Detected
-                            Letter</div>
-                        <div id="predLetter"
-                            class="text-[2.5rem] font-extrabold tracking-[-0.03em] uppercase text-[#00e5ff] drop-shadow-[0_0_20px_rgba(0,229,255,0.4)] transition-all duration-300 font-display">
-                            —</div>
-                    </div>
-                    <div class="font-mono text-right">
-                        <div class="text-[0.7rem] text-[#5a6a82]">Confidence</div>
-                        <span id="predConf"
-                            class="text-[1.5rem] font-medium text-[#00ffa3] block text-right">0.0%</span>
+                    <div class="flex items-center gap-3">
+                        <button id="cameraToggleBtn" type="button" class="camera-action">
+                            <span id="cameraToggleIcon">📷</span>
+                            <span id="cameraToggleText">Turn On</span>
+                        </button>
+                        <div class="recording-label">
+                            <span class="recording-dot animate-pulse-dot"></span>
+                            LIVE
+                        </div>
                     </div>
                 </div>
 
-                <div class="absolute top-4 left-4 flex items-center gap-2">
-                    <div id="handStatus"
-                        class="px-3 py-1.5 rounded-full text-xs font-bold font-mono border border-[#1e2d47] text-[#5a6a82] bg-[#0b1121]/80">
+                <div class="video-container" id="videoContainer">
+                    <img id="videoFeed" src="" alt="Live sign language camera feed">
+
+                    <div id="cameraOffOverlay" class="camera-off-overlay">
+                        <div class="camera-icon">📷</div>
+                        <div class="camera-off-title">Your camera is ready</div>
+                        <div class="camera-off-description">
+                            Turn on your camera and show a sign in front of it to begin recognition.
+                        </div>
+                        <button id="overlayTurnOn" type="button" class="primary-button">
+                            Enable Camera
+                        </button>
+                    </div>
+
+                    <div class="corner tl"></div>
+                    <div class="corner tr"></div>
+                    <div class="corner bl"></div>
+                    <div class="corner br"></div>
+
+                    <div id="handStatus" class="hand-status">
                         🤚 No hand detected
                     </div>
+
+                    <div id="predictionOverlay" class="prediction-overlay inactive">
+                        <div>
+                            <div class="prediction-caption">Detected Letter</div>
+                            <div id="predLetter">—</div>
+                        </div>
+                        <div>
+                            <div class="prediction-caption">Confidence</div>
+                            <div id="predConf" class="confidence-number">0.0%</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="confidence-panel">
+                    <div class="confidence-row">
+                        <span class="panel-label">Confidence Level</span>
+                        <span id="confPct">0.0%</span>
+                    </div>
+                    <div class="progress-track">
+                        <div id="confBar"></div>
+                    </div>
+                </div>
+
+                <div class="candidate-section">
+                    <div class="panel-label">Top Candidates</div>
+                    <div id="top5List">
+                        <div class="empty-state">Waiting for recognition data...</div>
+                    </div>
                 </div>
             </div>
+        </section>
 
-            <div class="p-5 border-t border-[#1e2d47]">
-                <div
-                    class="flex justify-between items-center text-[0.75rem] font-semibold tracking-[0.06em] uppercase text-[#5a6a82] mb-2.5 font-mono">
-                    <span>Confidence Level</span><span id="confPct" class="text-[#00e5ff]">0.0%</span>
-                </div>
-                <div class="h-1.5 bg-[#1e2d47] rounded-full overflow-hidden">
-                    <div id="confBar"
-                        class="h-full rounded-full bg-gradient-to-r from-[#7c3aed] to-[#00e5ff] shadow-[0_0_12px_rgba(0,229,255,0.5)] transition-all duration-300"
-                        style="width:0%"></div>
-                </div>
-            </div>
-
-            <div class="px-5 pb-5">
-                <div class="text-[0.7rem] font-semibold tracking-[0.1em] uppercase text-[#5a6a82] mb-3 font-mono">Top
-                    Candidates</div>
-                <div id="top5List" class="space-y-2"></div>
-            </div>
-        </div>
-
-        <!-- Right Column -->
-        <div class="flex flex-col gap-5">
-            <!-- Word Builder -->
-            <div class="bg-[#101828] border border-[#1e2d47] rounded-2xl overflow-hidden">
-                <div
-                    class="px-5 py-[0.875rem] border-b border-[#1e2d47] text-[0.8rem] font-bold uppercase tracking-[0.06em] text-[#5a6a82] font-mono">
-                    Word Builder
-                    <label class="toggle-switch float-right" title="Auto-add detected letters">
-                        <input type="checkbox" id="autoAddToggle" checked>
+        <aside class="right-column">
+            <!-- Word builder -->
+            <section class="panel">
+                <div class="panel-header">
+                    <div class="panel-heading">Word Builder</div>
+                    <label class="toggle-switch" title="Automatically add detected letters">
+                        <input type="checkbox" id="autoAddToggle" checked aria-label="Auto-add detected letters">
                         <span class="toggle-slider"></span>
                     </label>
                 </div>
-                <div class="p-5">
-                    <div id="wordBox"
-                        class="bg-[#0b1121] border border-[#1e2d47] rounded-xl p-4 min-h-[48px] text-lg font-bold text-[#e8edf5] font-display break-words leading-relaxed">
-                        <span id="wordPlaceholder" class="text-[#5a6a82] italic font-normal">Detected letters appear
-                            here...</span>
-                    </div>
-                    <div class="flex flex-wrap gap-2 mt-3">
-                        <button onclick="undoLastLetter()"
-                            class="px-4 py-1.5 rounded-lg text-xs font-bold uppercase border border-[#1e2d47] text-[#5a6a82] bg-transparent hover:border-[#00e5ff] hover:text-[#00e5ff] transition-all cursor-pointer font-mono">↩
-                            Undo</button>
-                        <button onclick="clearWord()"
-                            class="px-4 py-1.5 rounded-lg text-xs font-bold uppercase border border-red-500/40 text-[#ff4444] bg-transparent hover:bg-red-500/10 transition-all cursor-pointer font-mono">✕
-                            Clear</button>
-                        <button onclick="confirmWord()"
-                            class="px-4 py-1.5 rounded-lg text-xs font-bold uppercase border border-[#00ffa3]/30 text-[#00ffa3] bg-[#00ffa3]/10 hover:bg-[#00ffa3]/20 transition-all cursor-pointer font-mono">✓
-                            Confirm</button>
-                    </div>
-                    <div class="mt-2 text-[0.65rem] text-[#5a6a82] font-mono">
-                        <span id="autoAddStatus" class="text-[#00ffa3]">● Auto-add ON</span>
-                        <span class="hidden" id="autoAddStatusOff">○ Auto-add OFF</span>
-                    </div>
-                </div>
-            </div>
 
-            <!-- Sentence Builder -->
-            <div class="bg-[#101828] border border-[#1e2d47] rounded-2xl overflow-hidden">
-                <div
-                    class="px-5 py-[0.875rem] border-b border-[#1e2d47] text-[0.8rem] font-bold uppercase tracking-[0.06em] text-[#5a6a82] font-mono">
-                    Sentence Builder</div>
-                <div class="p-5">
-                    <div id="sentenceBox"
-                        class="bg-[#0b1121] border border-[#1e2d47] rounded-xl p-4 min-h-[64px] text-base font-semibold text-[#e8edf5] break-words leading-relaxed">
-                        <span id="sentencePlaceholder" class="text-[#5a6a82] italic font-normal text-sm">Confirmed words
-                            appear here...</span>
+                <div class="card-content">
+                    <div id="wordBox" class="text-display" aria-live="polite">
+                        <span id="wordPlaceholder" class="placeholder">Detected letters appear here...</span>
                     </div>
-                    <div class="flex gap-2 mt-3">
-                        <button onclick="undoWord()"
-                            class="px-4 py-1.5 rounded-lg text-xs font-bold uppercase border border-[#1e2d47] text-[#5a6a82] bg-transparent hover:border-[#00e5ff] hover:text-[#00e5ff] transition-all cursor-pointer font-mono">↩
-                            Undo Word</button>
-                        <button onclick="clearSentence()"
-                            class="px-4 py-1.5 rounded-lg text-xs font-bold uppercase border border-red-500/40 text-[#ff4444] bg-transparent hover:bg-red-500/10 transition-all cursor-pointer font-mono">✕
-                            Clear All</button>
-                    </div>
-                </div>
-            </div>
 
-            <!-- Session Stats -->
-            <div class="bg-[#101828] border border-[#1e2d47] rounded-2xl overflow-hidden">
-                <div
-                    class="flex items-center justify-between px-5 py-[0.875rem] border-b border-[#1e2d47] text-[0.8rem] font-bold uppercase tracking-[0.06em] text-[#5a6a82] font-mono">
-                    Session Stats</div>
-                <div class="p-5">
-                    <div class="grid grid-cols-2 gap-3.5">
-                        <div class="bg-[#0b1121] rounded-xl p-[0.875rem_1rem] border border-[#1e2d47]">
-                            <div id="statTotal"
-                                class="text-[1.75rem] font-extrabold tracking-[-0.04em] text-[#00e5ff] leading-tight mb-0.5 font-display">
-                                0</div>
-                            <div
-                                class="text-[0.7rem] text-[#5a6a82] font-semibold uppercase tracking-[0.06em] font-mono">
-                                Predictions</div>
-                        </div>
-                        <div class="bg-[#0b1121] rounded-xl p-[0.875rem_1rem] border border-[#1e2d47]">
-                            <div id="statUnique"
-                                class="text-[1.75rem] font-extrabold tracking-[-0.04em] text-[#00e5ff] leading-tight mb-0.5 font-display">
-                                0</div>
-                            <div
-                                class="text-[0.7rem] text-[#5a6a82] font-semibold uppercase tracking-[0.06em] font-mono">
-                                Unique Letters</div>
-                        </div>
-                        <div class="bg-[#0b1121] rounded-xl p-[0.875rem_1rem] border border-[#1e2d47]">
-                            <div id="statAvgConf"
-                                class="text-[1.75rem] font-extrabold tracking-[-0.04em] text-[#00ffa3] leading-tight mb-0.5 font-display">
-                                0%</div>
-                            <div
-                                class="text-[0.7rem] text-[#5a6a82] font-semibold uppercase tracking-[0.06em] font-mono">
-                                Avg Confidence</div>
-                        </div>
-                        <div class="bg-[#0b1121] rounded-xl p-[0.875rem_1rem] border border-[#1e2d47]">
-                            <div id="statTopLetter" class="text-sm font-bold text-[#e8edf5] pt-1 truncate font-display">
-                                —</div>
-                            <div
-                                class="text-[0.7rem] text-[#5a6a82] font-semibold uppercase tracking-[0.06em] font-mono">
-                                Most Used</div>
-                        </div>
+                    <div class="button-row">
+                        <button type="button" onclick="undoLastLetter()" class="small-button">↩ Undo</button>
+                        <button type="button" onclick="clearWord()" class="small-button danger">✕ Clear</button>
+                        <button type="button" onclick="confirmWord()" class="small-button success">✓ Confirm</button>
                     </div>
-                </div>
-            </div>
 
-            <!-- Recognition History -->
-            <div class="bg-[#101828] border border-[#1e2d47] rounded-2xl overflow-hidden">
-                <div
-                    class="flex items-center justify-between px-5 py-[0.875rem] border-b border-[#1e2d47] text-[0.8rem] font-bold uppercase tracking-[0.06em] text-[#5a6a82] font-mono">
-                    Recognition History
-                    <span id="histCount" class="text-[#5a6a82] text-[0.65rem]">0 entries</span>
+                    <div class="auto-status">
+                        <span id="autoAddStatus">● Auto-add ON</span>
+                        <span id="autoAddStatusOff" class="hidden">○ Auto-add OFF</span>
+                    </div>
                 </div>
-                <div class="px-5">
-                    <div id="historyFeed" class="max-h-[320px] overflow-y-auto custom-scroll">
-                        <div class="text-center py-8 text-[#5a6a82] text-sm font-mono">
-                            <span class="text-2xl block mb-2">🤚</span>
-                            Show a letter to see predictions
+            </section>
+
+            <!-- Sentence builder -->
+            <section class="panel">
+                <div class="panel-header">
+                    <div class="panel-heading">Sentence Builder</div>
+                </div>
+
+                <div class="card-content">
+                    <div id="sentenceBox" class="text-display sentence-display" aria-live="polite">
+                        <span id="sentencePlaceholder" class="placeholder">Confirmed words appear here...</span>
+                    </div>
+
+                    <div class="button-row">
+                        <button type="button" onclick="undoWord()" class="small-button">↩ Undo Word</button>
+                        <button type="button" onclick="clearSentence()" class="small-button danger">✕ Clear All</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Session stats -->
+            <section class="panel">
+                <div class="panel-header">
+                    <div class="panel-heading">Session Statistics</div>
+                </div>
+
+                <div class="card-content">
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div id="statTotal" class="stat-value">0</div>
+                            <div class="stat-caption">Predictions</div>
+                        </div>
+
+                        <div class="stat-card">
+                            <div id="statUnique" class="stat-value">0</div>
+                            <div class="stat-caption">Unique Letters</div>
+                        </div>
+
+                        <div class="stat-card">
+                            <div id="statAvgConf" class="stat-value">0%</div>
+                            <div class="stat-caption">Avg. Confidence</div>
+                        </div>
+
+                        <div class="stat-card">
+                            <div id="statTopLetter" class="stat-value">—</div>
+                            <div class="stat-caption">Most Used</div>
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
-    </div>
+            </section>
+
+            <!-- Recognition history -->
+            <section class="panel">
+                <div class="panel-header">
+                    <div class="panel-heading">Recognition History</div>
+                    <span id="histCount" class="history-count">0 entries</span>
+                </div>
+
+                <div id="historyFeed" class="custom-scroll">
+                    <div class="empty-state" style="padding: 28px 0;">
+                        <div style="font-size: 25px; margin-bottom: 8px;">🤚</div>
+                        Show a sign to see predictions
+                    </div>
+                </div>
+            </section>
+        </aside>
+    </main>
+
+    <footer class="site-footer">
+        <div>SignCareLoop · Indian Sign Language Recognition</div>
+        <div style="margin-top: 5px;">Designed to support more accessible communication in healthcare.</div>
+    </footer>
 
     <script>
-        // ===== STATE =====
-        let wordBuffer = [], sentenceWords = [], lastHistoryCount = 0, cameraActive = false;
-        let lastAddedLetter = '', lastAddTime = 0;
-        const ADD_COOLDOWN_MS = 600;
-        let autoAddEnabled = true; // Default: ON
+        // ============================================================
+        // STATE
+        // ============================================================
+        let wordBuffer = [];
+        let sentenceWords = [];
+        let lastHistoryCount = 0;
+        let cameraActive = false;
+        let lastAddedLetter = '';
+        let lastAddTime = 0;
+        const ADD_COOLDOWN_MS = 2500;
+        let autoAddEnabled = true;
+        let cameraRequestInProgress = false;
+        let toastTimer = null;
+        let toastRemoveTimer = null;
 
-        // ===== DOM ELEMENTS =====
+        // ============================================================
+        // DOM ELEMENTS
+        // ============================================================
         const videoImg = document.getElementById('videoFeed');
         const cameraOffOverlay = document.getElementById('cameraOffOverlay');
         const cameraToggleBtn = document.getElementById('cameraToggleBtn');
@@ -531,39 +1182,47 @@
         const histCount = document.getElementById('histCount');
         const historyFeed = document.getElementById('historyFeed');
         const modelStatusText = document.getElementById('modelStatusText');
+        const modelStatus = document.getElementById('modelStatus');
         const predictionOverlay = document.getElementById('predictionOverlay');
         const autoAddToggle = document.getElementById('autoAddToggle');
         const autoAddStatus = document.getElementById('autoAddStatus');
         const autoAddStatusOff = document.getElementById('autoAddStatusOff');
 
-        // Toggle auto-add
-        autoAddToggle?.addEventListener('change', (e) => {
-            autoAddEnabled = e.target.checked;
-            if (autoAddEnabled) {
-                autoAddStatus.classList.remove('hidden');
-                autoAddStatusOff.classList.add('hidden');
-                showToast('Auto-add enabled', 'info', 1000);
-            } else {
-                autoAddStatus.classList.add('hidden');
-                autoAddStatusOff.classList.remove('hidden');
-                showToast('Auto-add disabled - use Undo button to add manually', 'info', 1500);
-            }
-        });
-
-        // ===== TOAST NOTIFICATION =====
+        // ============================================================
+        // TOAST NOTIFICATIONS
+        // ============================================================
         function showToast(message, type = 'info', duration = 2000) {
-            const existing = document.querySelector('.toast-notification');
-            if (existing) existing.remove();
+            document.querySelectorAll('.toast-notification').forEach(el => el.remove());
+
+            if (toastTimer) clearTimeout(toastTimer);
+            if (toastRemoveTimer) clearTimeout(toastRemoveTimer);
+
             const toast = document.createElement('div');
-            toast.className = `toast-notification fixed bottom-20 left-1/2 transform -translate-x-1/2 z-50 px-4 py-2 rounded-lg text-sm font-bold font-mono transition-all duration-300 ${type === 'success' ? 'bg-[#00ffa3] text-[#04070f]' : type === 'error' ? 'bg-[#ff4444] text-white' : 'bg-[#00e5ff] text-[#04070f]'
-                }`;
-            toast.textContent = (type === 'success' ? '✓ ' : type === 'error' ? '✗ ' : 'ℹ ') + message;
+            toast.className = 'toast-notification' +
+                (type === 'success' ? ' success' : type === 'error' ? ' error' : '');
+            toast.setAttribute('role', 'status');
+            toast.textContent =
+                (type === 'success' ? '✓ ' : type === 'error' ? '✕ ' : 'ℹ ') + message;
+
             document.body.appendChild(toast);
-            setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, duration);
+
+            toastTimer = setTimeout(() => {
+                toast.style.opacity = '0';
+                toastRemoveTimer = setTimeout(() => toast.remove(), 300);
+            }, duration);
         }
 
-        // ===== CAMERA PERMISSION FUNCTIONS =====
+        // ============================================================
+        // CAMERA PERMISSIONS
+        // ============================================================
         async function requestCameraPermission() {
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                return {
+                    granted: false,
+                    message: 'Camera access is unavailable. Open this page on localhost or HTTPS.'
+                };
+            }
+
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({
                     video: {
@@ -575,275 +1234,354 @@
                 });
 
                 stream.getTracks().forEach(track => track.stop());
+
                 return { granted: true, message: 'Camera permission granted' };
             } catch (error) {
-                if (error.name === 'NotAllowedError') {
-                    return { granted: false, message: 'Camera permission denied by user' };
-                } else if (error.name === 'NotFoundError') {
-                    return { granted: false, message: 'No camera device found' };
-                } else if (error.name === 'NotReadableError') {
-                    return { granted: false, message: 'Camera is being used by another application' };
-                } else {
-                    return { granted: false, message: 'Camera access error: ' + error.message };
+                if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+                    return { granted: false, message: 'Camera permission denied. Allow camera access in browser settings.' };
                 }
+
+                if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
+                    return { granted: false, message: 'No camera device was found.' };
+                }
+
+                if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
+                    return { granted: false, message: 'The camera may be in use by another application. Close other camera apps and retry.' };
+                }
+
+                return { granted: false, message: 'Camera access error: ' + error.message };
             }
         }
 
         async function checkCameraPermission() {
             try {
-                const permissions = await navigator.permissions.query({ name: 'camera' });
-                return permissions.state;
+                if (!navigator.permissions || !navigator.permissions.query) {
+                    return 'prompt';
+                }
+
+                const permission = await navigator.permissions.query({ name: 'camera' });
+                return permission.state;
             } catch (error) {
                 return 'prompt';
             }
         }
 
-        function showPermissionInstructions() {
-            const modal = document.createElement('div');
-            modal.style.cssText = `
-                position: fixed;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%);
-                background: #101828;
-                border: 2px solid #00e5ff;
-                border-radius: 16px;
-                padding: 30px;
-                z-index: 10000;
-                max-width: 450px;
-                text-align: center;
-                box-shadow: 0 0 50px rgba(0, 229, 255, 0.3);
-                font-family: 'Ubuntu', sans-serif;
-            `;
+        function showPermissionInstructions(message) {
+            const backdrop = document.createElement('div');
+            backdrop.className = 'permission-backdrop';
 
-            modal.innerHTML = `
-                <div style="font-size: 48px; margin-bottom: 15px;">📷</div>
-                <h3 style="font-family: 'Anta', sans-serif; color: #00e5ff; margin-bottom: 15px; font-size: 1.5rem;">Camera Access Required</h3>
-                <p style="color: #e8edf5; margin-bottom: 20px; line-height: 1.6; font-size: 14px;">
-                    To enable camera access:<br><br>
-                    <strong style="color: #00ffa3;">Chrome/Edge:</strong> Click the lock icon 🔒 in the address bar → Allow Camera<br><br>
-                    <strong style="color: #00ffa3;">Firefox:</strong> Click the camera icon in address bar → Allow Camera<br><br>
-                    Then refresh the page.
-                </p>
-                <button onclick="this.closest('div[style*=fixed]').remove(); this.nextElementSibling.remove();" 
-                        style="background: #00e5ff; color: #04070f; border: none; padding: 12px 30px; 
-                               border-radius: 8px; font-weight: bold; cursor: pointer; font-family: 'Ubuntu', sans-serif; font-size: 14px;">
-                    Got it
-                </button>
-                <div style="position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 9999;" 
-                     onclick="this.remove(); this.previousElementSibling.remove();"></div>
-            `;
+            const dialog = document.createElement('div');
+            dialog.className = 'permission-dialog';
+            dialog.setAttribute('role', 'dialog');
+            dialog.setAttribute('aria-modal', 'true');
+            dialog.setAttribute('aria-labelledby', 'permissionTitle');
 
-            document.body.appendChild(modal);
+            const icon = document.createElement('div');
+            icon.style.cssText = 'font-size:34px;margin-bottom:12px;';
+            icon.textContent = '📷';
+
+            const title = document.createElement('h3');
+            title.id = 'permissionTitle';
+            title.textContent = 'Camera access required';
+
+            const description = document.createElement('p');
+            description.textContent = message || 'Allow camera access to use sign recognition.';
+
+            const instructions = document.createElement('p');
+            instructions.innerHTML =
+                '<strong>Chrome / Edge:</strong> Select the site controls icon beside the address bar and allow Camera access.<br><br>' +
+                '<strong>Firefox:</strong> Use the camera permission icon in the address bar to allow access.<br><br>' +
+                'Then try enabling the camera again.';
+
+            const closeButton = document.createElement('button');
+            closeButton.type = 'button';
+            closeButton.className = 'primary-button';
+            closeButton.textContent = 'Got it';
+            closeButton.addEventListener('click', () => backdrop.remove());
+
+            backdrop.addEventListener('click', event => {
+                if (event.target === backdrop) backdrop.remove();
+            });
+
+            dialog.append(icon, title, description, instructions, closeButton);
+            backdrop.appendChild(dialog);
+            document.body.appendChild(backdrop);
+            closeButton.focus();
         }
 
-        // ===== SET CAMERA UI =====
+        // ============================================================
+        // CAMERA UI
+        // ============================================================
         function setCameraUI(active) {
             cameraActive = active;
+
+            cameraToggleBtn.disabled = false;
+            cameraToggleIcon.textContent = active ? '📷' : '📷';
+            cameraToggleText.textContent = active ? 'Turn Off' : 'Turn On';
+            cameraToggleBtn.setAttribute('aria-pressed', String(active));
+
             if (active) {
-                cameraToggleIcon.textContent = '📷';
-                cameraToggleText.textContent = 'Turn Off';
-                cameraToggleBtn.classList.add('border-[#00e5ff]', 'text-[#00e5ff]');
-                cameraToggleBtn.classList.remove('text-[#5a6a82]');
-                cameraOffOverlay.classList.add('opacity-0', 'pointer-events-none');
-                videoImg.classList.remove('opacity-50');
-                predictionOverlay.classList.remove('opacity-50', 'pointer-events-none');
+                cameraOffOverlay.classList.add('is-hidden');
+                videoImg.style.opacity = '1';
+                predictionOverlay.classList.remove('inactive');
             } else {
-                cameraToggleIcon.textContent = '📷❌';
-                cameraToggleText.textContent = 'Turn On';
-                cameraToggleBtn.classList.remove('border-[#00e5ff]', 'text-[#00e5ff]');
-                cameraToggleBtn.classList.add('text-[#5a6a82]');
-                cameraOffOverlay.classList.remove('opacity-0', 'pointer-events-none');
-                videoImg.classList.add('opacity-50');
-                predictionOverlay.classList.add('opacity-50', 'pointer-events-none');
+                cameraOffOverlay.classList.remove('is-hidden');
+                videoImg.style.opacity = '.3';
+                predictionOverlay.classList.add('inactive');
             }
         }
 
-        // ===== TOGGLE CAMERA =====
+        // ============================================================
+        // CAMERA START / STOP
+        // ============================================================
         async function toggleCamera() {
+            if (cameraRequestInProgress) return;
+
+            cameraRequestInProgress = true;
+            cameraToggleBtn.disabled = true;
+            overlayTurnOn.disabled = true;
+
             const newState = !cameraActive;
 
-            if (newState) {
-                cameraToggleText.textContent = 'Requesting...';
-                cameraToggleIcon.textContent = '📷';
+            try {
+                if (newState) {
+                    cameraToggleText.textContent = 'Checking...';
 
-                const permissionStatus = await checkCameraPermission();
+                    const permissionStatus = await checkCameraPermission();
 
-                if (permissionStatus === 'denied') {
-                    showToast('Camera permission denied. Please enable in browser settings.', 'error');
-                    setCameraUI(false);
-                    showPermissionInstructions();
-                    return;
-                }
+                    if (permissionStatus === 'denied') {
+                        setCameraUI(false);
+                        showToast('Camera permission is blocked in browser settings.', 'error');
+                        showPermissionInstructions('Camera permission is currently blocked. Enable it in your browser settings, then try again.');
+                        return;
+                    }
 
-                const permission = await requestCameraPermission();
+                    const permission = await requestCameraPermission();
 
-                if (!permission.granted) {
-                    showToast(permission.message, 'error');
-                    setCameraUI(false);
-                    return;
-                }
+                    if (!permission.granted) {
+                        setCameraUI(false);
+                        showToast(permission.message, 'error', 3500);
 
-                try {
+                        if (permission.message.toLowerCase().includes('denied')) {
+                            showPermissionInstructions(permission.message);
+                        }
+                        return;
+                    }
+
+                    cameraToggleText.textContent = 'Starting...';
+
                     const response = await fetch('/static/api/camera/control', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ camera_on: true })
                     });
 
-                    if (response.ok) {
-                        setCameraUI(true);
-                        videoImg.src = '/static/video_feed?_t=' + Date.now();
-                        showToast('Camera activated successfully', 'success');
-                    } else {
-                        throw new Error('Backend failed to start camera');
+                    if (!response.ok) {
+                        throw new Error('The server could not start the camera.');
                     }
-                } catch (error) {
-                    console.error('Camera start error:', error);
-                    showToast('Failed to start camera: ' + error.message, 'error');
-                    setCameraUI(false);
-                }
-            } else {
-                cameraToggleText.textContent = 'Stopping...';
 
-                try {
-                    await fetch('/static/api/camera/control', {
+                    setCameraUI(true);
+                    videoImg.src = '/static/video_feed?_t=' + Date.now();
+                    showToast('Camera activated', 'success');
+                } else {
+                    cameraToggleText.textContent = 'Stopping...';
+
+                    const response = await fetch('/static/api/camera/control', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ camera_on: false })
                     });
 
+                    if (!response.ok) {
+                        throw new Error('The server could not stop the camera.');
+                    }
+
                     setCameraUI(false);
                     videoImg.src = '';
-                    showToast('Camera turned off', 'info');
-                } catch (error) {
-                    console.error('Camera stop error:', error);
-                    setCameraUI(!cameraActive);
-                    showToast('Failed to stop camera', 'error');
+                    showToast('Camera turned off');
                 }
+            } catch (error) {
+                console.error('Camera control error:', error);
+                setCameraUI(false);
+                videoImg.src = '';
+                showToast(error.message || 'Camera control failed.', 'error', 3000);
+            } finally {
+                cameraRequestInProgress = false;
+                cameraToggleBtn.disabled = false;
+                overlayTurnOn.disabled = false;
             }
         }
 
-        // Check camera permission on page load
         window.addEventListener('load', async () => {
             const status = await checkCameraPermission();
             if (status === 'granted') {
-                console.log('✅ Camera permission already granted');
+                console.log('Camera permission already granted.');
             } else if (status === 'denied') {
-                console.log('❌ Camera permission previously denied');
+                console.log('Camera permission is blocked in browser settings.');
             }
         });
 
-        // ===== UPDATE UI FROM API =====
-        function updateUI(d) {
-            const letter = d.letter || '—';
-            const conf = d.confidence || 0;
-
-            predLetter.textContent = letter === '—' ? '—' : letter.toUpperCase();
-            predConf.textContent = conf.toFixed(1) + '%';
-            confPct.textContent = conf.toFixed(1) + '%';
-            confBar.style.width = Math.min(conf, 100) + '%';
-
-            // PROFESSIONAL AUTO-ADD with better delay logic
-            const now = Date.now();
-            const MIN_CONFIDENCE = 40;  // Higher threshold
-            const COOLDOWN_MS = 2500;    // Increased from 600ms to 2500ms (2.5 seconds)
-            const MIN_GAP_MS = 800;      // Minimum time between same letter
-
-            if (autoAddEnabled &&
-                letter !== '—' &&
-                conf >= MIN_CONFIDENCE &&
-                (now - lastAddTime) > COOLDOWN_MS) {
-
-                // Only add if it's a different letter OR enough time has passed
-                if (letter !== lastAddedLetter || (now - lastAddTime) > MIN_GAP_MS) {
-
-                    wordBuffer.push(letter.toUpperCase());
-                    renderWord();
-
-                    // Visual feedback: pulse animation on word box
-                    wordBox.classList.add('animate-pulse-add');
-                    setTimeout(() => wordBox.classList.remove('animate-pulse-add'), 600);
-
-                    showToast(`Added "${letter}"`, 'success', 1000);
-                    lastAddedLetter = letter;
-                    lastAddTime = now;
-
-                    // Log for debugging
-                    console.log(`✅ Auto-added: ${letter} at ${now} (conf: ${conf}%)`);
-                }
-            }
-
-            // Hand Status
-            if (d.hand_present) {
-                handStatus.textContent = '🤚 Hand detected';
-                handStatus.className = 'px-3 py-1.5 rounded-full text-xs font-bold font-mono border border-[#00ffa3]/30 text-[#00ffa3] bg-[#00ffa3]/5 animate-pulse-dot';
-            } else {
-                handStatus.textContent = '🤚 No hand detected';
-                handStatus.className = 'px-3 py-1.5 rounded-full text-xs font-bold font-mono border border-[#1e2d47] text-[#5a6a82] bg-[#0b1121]/80';
-            }
-
-            // Top 5 Probabilities
-            const probs = d.all_probs || {};
-            const sorted = Object.entries(probs).sort((a, b) => b[1] - a[1]).slice(0, 5);
-            if (sorted.length) {
-                top5List.innerHTML = sorted.map(([l, p]) => `
-          <div class="flex items-center gap-2.5 mb-2">
-            <div class="text-[0.75rem] font-semibold w-8 text-[#e8edf5] font-display">${l}</div>
-            <div class="flex-1 h-1 bg-[#1e2d47] rounded-full overflow-hidden">
-              <div class="h-full rounded-full bg-gradient-to-r from-[#7c3aed] to-[#00e5ff] transition-all duration-200" style="width:${p}%"></div>
-            </div>
-            <div class="text-[0.7rem] text-[#5a6a82] w-9 text-right font-mono">${p.toFixed(1)}%</div>
-          </div>
-        `).join('');
-            } else {
-                top5List.innerHTML = '<div class="text-[#5a6a82] text-sm font-mono text-center py-2">Waiting for input...</div>';
-            }
-
-            // Stats
-            statTotal.textContent = d.total || 0;
-            statUnique.textContent = d.unique || 0;
-            if (d.history?.length) {
-                const avg = d.history.reduce((s, h) => s + h.conf, 0) / d.history.length;
-                statAvgConf.textContent = avg.toFixed(1) + '%';
-                const top = Object.entries(d.session_counts || {}).sort((a, b) => b[1] - a[1])[0];
-                statTopLetter.textContent = top ? top[0].toUpperCase() : '—';
-            } else {
-                statAvgConf.textContent = '0%'; statTopLetter.textContent = '—';
-            }
-
-            // History
-            const hist = d.history || [];
-            if (hist.length !== lastHistoryCount) {
-                histCount.textContent = hist.length + ' entries';
-                if (hist.length) {
-                    historyFeed.innerHTML = hist.map(h => `
-            <div class="flex items-center gap-3 py-2 border-b border-white/5 animate-slide-in">
-              <div class="flex-1 font-bold text-sm uppercase text-[#e8edf5] font-display">${h.letter}</div>
-              <div class="font-mono text-[0.7rem] text-[#00ffa3] font-medium">${h.conf}%</div>
-              <div class="font-mono text-[0.65rem] text-[#5a6a82]">${h.time}</div>
-            </div>
-          `).reverse().join('');
-                } else {
-                    historyFeed.innerHTML = `<div class="text-center py-8 text-[#5a6a82] text-sm font-mono"><span class="text-2xl block mb-2">🤚</span>Show a letter to see predictions</div>`;
-                }
-                lastHistoryCount = hist.length;
-            }
-
-            // Model Status
-            if (!d.all_probs || Object.keys(d.all_probs).length === 0) {
+        // ============================================================
+        // MODEL STATUS
+        // ============================================================
+        function setModelStatus(isDemo) {
+            if (isDemo) {
                 modelStatusText.textContent = 'DEMO MODE';
-                document.getElementById('modelStatus').className = 'flex items-center gap-2 py-1.5 px-3 sm:px-4 rounded-full text-[0.65rem] sm:text-xs font-bold font-mono tracking-wide border border-[#ff8c42]/30 bg-[#ff8c42]/5 text-[#ff8c42]';
+                modelStatus.style.color = '#a86613';
+                modelStatus.style.background = '#fff7e9';
+                modelStatus.style.borderColor = '#efd8ad';
+                modelStatus.querySelector('.status-dot').style.background = '#c58a2b';
             } else {
                 modelStatusText.textContent = 'MODEL ACTIVE';
-                document.getElementById('modelStatus').className = 'flex items-center gap-2 py-1.5 px-3 sm:px-4 rounded-full text-[0.65rem] sm:text-xs font-bold font-mono tracking-wide border border-[#00ffa3]/30 bg-[#00ffa3]/5 text-[#00ffa3]';
+                modelStatus.style.color = 'var(--green)';
+                modelStatus.style.background = '#eef7ef';
+                modelStatus.style.borderColor = 'var(--green-border)';
+                modelStatus.querySelector('.status-dot').style.background = '#29965f';
             }
         }
 
-        // ===== WORD BUILDER FUNCTIONS =====
+        // ============================================================
+        // UPDATE UI FROM THE EXISTING FLASK API
+        // ============================================================
+        function updateUI(d) {
+            const letter = d.letter || '—';
+            const conf = Number(d.confidence) || 0;
+
+            predLetter.textContent = letter === '—' ? '—' : String(letter).toUpperCase();
+            predConf.textContent = conf.toFixed(1) + '%';
+            confPct.textContent = conf.toFixed(1) + '%';
+            confBar.style.width = Math.max(0, Math.min(conf, 100)) + '%';
+
+            // Add a predicted letter only when confidence and cooldown pass.
+            const now = Date.now();
+            const MIN_CONFIDENCE = 40;
+
+            if (
+                autoAddEnabled &&
+                letter !== '—' &&
+                conf >= MIN_CONFIDENCE &&
+                now - lastAddTime >= ADD_COOLDOWN_MS
+            ) {
+                wordBuffer.push(String(letter).toUpperCase());
+                renderWord();
+
+                wordBox.classList.remove('animate-pulse-add');
+                void wordBox.offsetWidth;
+                wordBox.classList.add('animate-pulse-add');
+
+                showToast('Added "' + String(letter).toUpperCase() + '"', 'success', 1000);
+                lastAddedLetter = String(letter).toUpperCase();
+                lastAddTime = now;
+            }
+
+            // Hand status
+            if (d.hand_present) {
+                handStatus.textContent = '🤚 Hand detected';
+                handStatus.classList.add('detected');
+            } else {
+                handStatus.textContent = '🤚 No hand detected';
+                handStatus.classList.remove('detected');
+            }
+
+            // Top candidates
+            const probs = d.all_probs || {};
+            const sorted = Object.entries(probs)
+                .sort((a, b) => Number(b[1]) - Number(a[1]))
+                .slice(0, 5);
+
+            if (sorted.length) {
+                top5List.innerHTML = sorted.map(([candidate, probability]) => {
+                    const value = Math.max(0, Math.min(Number(probability) || 0, 100));
+                    const row = document.createElement('div');
+                    row.className = 'candidate-row';
+
+                    const candidateLetter = document.createElement('div');
+                    candidateLetter.className = 'candidate-letter';
+                    candidateLetter.textContent = candidate;
+
+                    const track = document.createElement('div');
+                    track.className = 'candidate-track';
+
+                    const fill = document.createElement('div');
+                    fill.className = 'candidate-fill';
+                    fill.style.width = value + '%';
+                    track.appendChild(fill);
+
+                    const valueLabel = document.createElement('div');
+                    valueLabel.className = 'candidate-value';
+                    valueLabel.textContent = value.toFixed(1) + '%';
+
+                    row.append(candidateLetter, track, valueLabel);
+                    return row.outerHTML;
+                }).join('');
+            } else {
+                top5List.innerHTML = '<div class="empty-state">Waiting for recognition data...</div>';
+            }
+
+            // Session statistics
+            statTotal.textContent = d.total || 0;
+            statUnique.textContent = d.unique || 0;
+
+            const hist = d.history || [];
+
+            if (hist.length) {
+                const average = hist.reduce((sum, item) => sum + (Number(item.conf) || 0), 0) / hist.length;
+                statAvgConf.textContent = average.toFixed(1) + '%';
+
+                const counts = Object.entries(d.session_counts || {})
+                    .sort((a, b) => Number(b[1]) - Number(a[1]));
+
+                statTopLetter.textContent = counts.length
+                    ? String(counts[0][0]).toUpperCase()
+                    : '—';
+            } else {
+                statAvgConf.textContent = '0%';
+                statTopLetter.textContent = '—';
+            }
+
+            // Recognition history
+            if (hist.length !== lastHistoryCount) {
+                histCount.textContent = hist.length + (hist.length === 1 ? ' entry' : ' entries');
+
+                if (hist.length) {
+                    historyFeed.innerHTML = hist.slice().reverse().map(item => {
+                        const row = document.createElement('div');
+                        row.className = 'history-row animate-slide-in';
+
+                        const letterElement = document.createElement('div');
+                        letterElement.className = 'history-letter';
+                        letterElement.textContent = item.letter ?? '—';
+
+                        const confidenceElement = document.createElement('div');
+                        confidenceElement.className = 'history-confidence';
+                        confidenceElement.textContent = (Number(item.conf) || 0) + '%';
+
+                        const timeElement = document.createElement('div');
+                        timeElement.className = 'history-time';
+                        timeElement.textContent = item.time ?? '';
+
+                        row.append(letterElement, confidenceElement, timeElement);
+                        return row.outerHTML;
+                    }).join('');
+                } else {
+                    historyFeed.innerHTML =
+                        '<div class="empty-state" style="padding:28px 0;">Show a sign to see predictions</div>';
+                }
+
+                lastHistoryCount = hist.length;
+            }
+
+            // Retain the existing backend's model/demo indication.
+            setModelStatus(!d.all_probs || Object.keys(d.all_probs).length === 0);
+        }
+
+        // ============================================================
+        // WORD BUILDER
+        // ============================================================
         function renderWord() {
             if (wordBuffer.length === 0) {
-                wordBox.innerHTML = '<span id="wordPlaceholder" class="text-[#5a6a82] italic font-normal">Detected letters appear here...</span>';
+                wordBox.innerHTML =
+                    '<span id="wordPlaceholder" class="placeholder">Detected letters appear here...</span>';
             } else {
                 wordBox.textContent = wordBuffer.join('');
             }
@@ -851,108 +1589,178 @@
 
         function renderSentence() {
             if (sentenceWords.length === 0) {
-                sentenceBox.innerHTML = '<span id="sentencePlaceholder" class="text-[#5a6a82] italic font-normal text-sm">Confirmed words appear here...</span>';
+                sentenceBox.innerHTML =
+                    '<span id="sentencePlaceholder" class="placeholder">Confirmed words appear here...</span>';
             } else {
                 sentenceBox.textContent = sentenceWords.join(' ');
             }
         }
 
         function clearWord() {
-            if (wordBuffer.length) {
-                wordBuffer = [];
-                renderWord();
-                showToast('Word cleared', 'info');
+            if (!wordBuffer.length) {
+                showToast('The word builder is already empty');
+                return;
             }
+
+            wordBuffer = [];
+            renderWord();
+            showToast('Word cleared');
         }
 
         function confirmWord() {
-            if (wordBuffer.length) {
-                const word = wordBuffer.join('');
-                sentenceWords.push(word);
-                wordBuffer = [];
-                renderWord();
-                renderSentence();
-                showToast(`✓ "${word}" added to sentence`, 'success');
-            } else {
-                showToast('No letters in word buffer', 'info');
+            if (!wordBuffer.length) {
+                showToast('No letters to confirm');
+                return;
             }
+
+            const word = wordBuffer.join('');
+            sentenceWords.push(word);
+            wordBuffer = [];
+
+            renderWord();
+            renderSentence();
+            showToast('"' + word + '" added to sentence', 'success');
         }
 
         function undoLastLetter() {
-            if (wordBuffer.length) {
-                const removed = wordBuffer.pop();
-                renderWord();
-                showToast(`↩ Removed "${removed}"`, 'info', 1000);
-            } else {
-                showToast('No letters to undo', 'info');
+            if (!wordBuffer.length) {
+                showToast('No letters to undo');
+                return;
             }
+
+            const removed = wordBuffer.pop();
+            renderWord();
+            showToast('Removed "' + removed + '"');
         }
 
         function undoWord() {
-            if (sentenceWords.length) {
-                const removed = sentenceWords.pop();
-                renderSentence();
-                showToast(`↩ Removed "${removed}"`, 'info', 1000);
-            } else {
-                showToast('No words to undo', 'info');
+            if (!sentenceWords.length) {
+                showToast('No words to undo');
+                return;
             }
+
+            const removed = sentenceWords.pop();
+            renderSentence();
+            showToast('Removed "' + removed + '"');
         }
 
         function clearSentence() {
-            if (sentenceWords.length) {
-                sentenceWords = [];
-                renderSentence();
-                showToast('Sentence cleared', 'info');
+            if (!sentenceWords.length) {
+                showToast('The sentence is already empty');
+                return;
             }
+
+            sentenceWords = [];
+            renderSentence();
+            showToast('Sentence cleared');
         }
 
-        // ===== API POLLING (Fast: 100ms) =====
-        setInterval(async () => {
-            if (!cameraActive) return;
-            try {
-                const res = await fetch('/static/api/state');
-                const d = await res.json();
-                updateUI(d);
-            } catch (e) { }
-        }, 100);
+        // ============================================================
+        // AUTO-ADD TOGGLE
+        // ============================================================
+        autoAddToggle.addEventListener('change', event => {
+            autoAddEnabled = event.target.checked;
 
-        // ===== EVENT LISTENERS =====
-        cameraToggleBtn?.addEventListener('click', toggleCamera);
-        overlayTurnOn?.addEventListener('click', toggleCamera);
-
-        // Only listen for video errors when camera is ON
-        videoImg.addEventListener('load', () => {
-            if (cameraActive) {
-                console.log('🎥 Video stream active');
+            if (autoAddEnabled) {
+                autoAddStatus.classList.remove('hidden');
+                autoAddStatusOff.classList.add('hidden');
+                showToast('Automatic letter adding enabled');
+            } else {
+                autoAddStatus.classList.add('hidden');
+                autoAddStatusOff.classList.remove('hidden');
+                showToast('Automatic letter adding paused');
             }
         });
 
-        videoImg.addEventListener('error', (e) => {
-            // Only show error if camera is supposed to be ON
+        // ============================================================
+        // API POLLING — SAME EXISTING BACKEND ENDPOINT
+        // ============================================================
+        setInterval(async () => {
+            if (!cameraActive) return;
+
+            try {
+                const response = await fetch('/static/api/state', {
+                    cache: 'no-store'
+                });
+
+                if (!response.ok) return;
+
+                const data = await response.json();
+                updateUI(data);
+            } catch (error) {
+                // Avoid showing a toast on every polling failure.
+                console.debug('Waiting for static recognition API:', error);
+            }
+        }, 150);
+
+        // ============================================================
+        // CAMERA EVENT LISTENERS
+        // ============================================================
+        cameraToggleBtn.addEventListener('click', toggleCamera);
+        overlayTurnOn.addEventListener('click', toggleCamera);
+
+        videoImg.addEventListener('load', () => {
+            if (cameraActive) console.log('Camera video feed connected.');
+        });
+
+        videoImg.addEventListener('error', () => {
             if (cameraActive) {
-                console.error('🎥 Video error:', e);
-                showToast('Video feed failed', 'error', 3000);
+                console.error('Video feed failed to load.');
+                showToast('Video feed failed. Check the backend camera.', 'error', 3000);
                 setCameraUI(false);
             }
         });
 
-        // ===== INITIALIZATION =====
+        // ============================================================
+        // MOBILE NAVIGATION
+        // ============================================================
+        (function () {
+            const menuToggle = document.getElementById('menuToggle');
+            const mobileMenu = document.getElementById('mobileMenu');
+
+            if (!menuToggle || !mobileMenu) return;
+
+            function closeMenu() {
+                mobileMenu.classList.remove('show');
+                menuToggle.classList.remove('active');
+                menuToggle.setAttribute('aria-expanded', 'false');
+                document.body.classList.remove('menu-open');
+            }
+
+            menuToggle.addEventListener('click', event => {
+                event.stopPropagation();
+
+                const isOpen = mobileMenu.classList.toggle('show');
+                menuToggle.classList.toggle('active', isOpen);
+                menuToggle.setAttribute('aria-expanded', String(isOpen));
+                document.body.classList.toggle('menu-open', isOpen);
+            });
+
+            document.addEventListener('click', event => {
+                if (
+                    !menuToggle.contains(event.target) &&
+                    !mobileMenu.contains(event.target)
+                ) {
+                    closeMenu();
+                }
+            });
+
+            mobileMenu.querySelectorAll('a').forEach(link => {
+                link.addEventListener('click', closeMenu);
+            });
+
+            window.addEventListener('resize', () => {
+                if (window.innerWidth > 1000) closeMenu();
+            });
+        })();
+
+        // ============================================================
+        // INITIALIZE
+        // ============================================================
         setCameraUI(false);
         videoImg.src = '';
         renderWord();
         renderSentence();
-
-        // ===== MOBILE MENU =====
-        (function () {
-            const menuToggle = document.getElementById('menuToggle'), mobileMenu = document.getElementById('mobileMenu');
-            if (menuToggle && mobileMenu) {
-                menuToggle.addEventListener('click', e => { e.stopPropagation(); mobileMenu.classList.toggle('show'); menuToggle.classList.toggle('active'); });
-                document.addEventListener('click', e => { if (!menuToggle.contains(e.target) && !mobileMenu.contains(e.target) && mobileMenu.classList.contains('show')) { mobileMenu.classList.remove('show'); menuToggle.classList.remove('active'); } });
-                mobileMenu.querySelectorAll('a').forEach(l => l.addEventListener('click', () => { mobileMenu.classList.remove('show'); menuToggle.classList.remove('active'); }));
-                window.addEventListener('resize', () => { if (window.innerWidth >= 768 && mobileMenu.classList.contains('show')) { mobileMenu.classList.remove('show'); menuToggle.classList.remove('active'); } });
-            }
-        })();
     </script>
 </body>
-
 </html>

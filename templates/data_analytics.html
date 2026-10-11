@@ -98,9 +98,190 @@
             overflow: hidden;
         }
     </style>
+<style id="SIGNCARE-LIGHT-CLINICAL-OVERRIDES">
+    :root {
+        color-scheme: light;
+        --clinical-bg: #f4f7fb;
+        --clinical-card: #ffffff;
+        --clinical-border: #dce5ef;
+        --clinical-text: #243247;
+        --clinical-muted: #64748b;
+        --clinical-blue: #2563eb;
+        --clinical-teal: #0f9f9a;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+        background: var(--clinical-bg) !important;
+        color: var(--clinical-text) !important;
+        font-family: 'Ubuntu', sans-serif;
+    }
+
+    nav {
+        background: rgba(255,255,255,.96) !important;
+        border-color: var(--clinical-border) !important;
+        box-shadow: 0 2px 12px rgba(31,54,80,.04);
+    }
+
+    nav a { transition: background .2s ease, color .2s ease; }
+
+    body div[class*="bg-[#101828]"] {
+        background: var(--clinical-card) !important;
+        border-color: var(--clinical-border) !important;
+        border-radius: 14px !important;
+        box-shadow: 0 4px 18px rgba(31,54,80,.045);
+    }
+
+    body div[class*="bg-[#0b1121]"] {
+        background: #f0f5fa !important;
+        border-color: var(--clinical-border) !important;
+    }
+
+    body div[class*="bg-[#04070f]"] {
+        background: rgba(255,255,255,.97) !important;
+    }
+
+    body div[class*="border-[#1e2d47]"],
+    body th[class*="border-[#1e2d47]"] {
+        border-color: var(--clinical-border) !important;
+    }
+
+    body [class*="text-[#e8edf5]"],
+    body [class*="text-white"] {
+        color: var(--clinical-text) !important;
+    }
+
+    body [class*="text-[#5a6a82]"] {
+        color: var(--clinical-muted) !important;
+    }
+
+    body [class*="text-[#00e5ff]"] {
+        color: var(--clinical-blue) !important;
+    }
+
+    body [class*="text-[#00ffa3]"] {
+        color: var(--clinical-teal) !important;
+    }
+
+    body [class*="text-[#7c3aed]"] {
+        color: #6950b8 !important;
+    }
+
+    body [class*="text-[#ff8c42]"] {
+        color: #c76b20 !important;
+    }
+
+    body [class*="text-[#ff4444]"] {
+        color: #c53d4b !important;
+    }
+
+    body [class*="border-[#00e5ff]"] {
+        border-color: #9bc5fb !important;
+    }
+
+    body [class*="bg-[#00e5ff]"] {
+        background-color: #e8f2ff !important;
+    }
+
+    body [class*="bg-gradient-to-b"] {
+        background: linear-gradient(180deg, #edf5ff 0%, #f4f7fb 100%) !important;
+    }
+
+    h1, h2, h3 {
+        letter-spacing: -.025em;
+    }
+
+    canvas {
+        max-width: 100%;
+    }
+
+    table {
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+    thead th {
+        background: #edf3f9 !important;
+        color: #52657c !important;
+        font-size: .68rem !important;
+        letter-spacing: .045em;
+        padding-top: 13px !important;
+        padding-bottom: 13px !important;
+    }
+
+    tbody tr {
+        transition: background-color .15s ease;
+    }
+
+    #epochTbody tr,
+    #f1Tbody tr {
+        border-color: var(--clinical-border) !important;
+    }
+
+    #epochTbody td,
+    #f1Tbody td {
+        border-bottom: 1px solid #edf1f6;
+    }
+
+    #chipGrid > div {
+        background: #fff !important;
+        border-color: var(--clinical-border) !important;
+        border-radius: 10px !important;
+        padding: 13px !important;
+        transition: transform .18s ease, box-shadow .18s ease;
+    }
+
+    #chipGrid > div:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(31,54,80,.08);
+    }
+
+    #modelStatusBadge {
+        background: #eaf8f3 !important;
+        border-color: #b8e6d5 !important;
+        color: #147d61 !important;
+    }
+
+    #menuToggle {
+        border-color: var(--clinical-border) !important;
+    }
+
+    #menuToggle span {
+        background: #52657c !important;
+    }
+
+    .custom-scroll::-webkit-scrollbar-track {
+        background: #edf2f7;
+    }
+
+    .custom-scroll::-webkit-scrollbar-thumb {
+        background: #c1cedd;
+    }
+
+    @media (max-width: 640px) {
+        h1 { line-height: 1.15; }
+
+        #chipGrid {
+            gap: 10px;
+        }
+
+        table th, table td {
+            white-space: nowrap;
+        }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after {
+            animation-duration: .01ms !important;
+            transition-duration: .01ms !important;
+            scroll-behavior: auto !important;
+        }
+    }
+</style>
 </head>
 
-<body class="bg-[#0f0f1a] text-[#e8edf5]">
+<body class="bg-slate-50 text-slate-800">
 
     <!-- Navigation with Responsive Mobile Menu -->
     <nav class="sticky top-0 z-[100] bg-[#04070f]/85 backdrop-blur-md border-b border-[#1e2d47]">

@@ -1,4 +1,4 @@
-# Python
+﻿# Python
 __pycache__/
 *.py[cod]
 *$py.class
@@ -9,6 +9,8 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+.venv/
+.venv-rtslr/
 
 # Flask
 instance/
@@ -24,10 +26,13 @@ instance/
 .DS_Store
 Thumbs.db
 
-# Model files (optional - if too large for GitHub)
-# *.pt
-# *.pth
+# Logs and temporary backups
+*.log
+*.bak
+*.backup
+backups/
 
-# Logs
-*.logisl_alphabet_model.pkl
+# Optional local model file
 isl_alphabet_model.pkl
+
+# Keep required model files such as sign_lstm_best.pt tracked

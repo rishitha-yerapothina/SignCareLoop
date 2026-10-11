@@ -1,221 +1,335 @@
+
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dynamic Inference - RTSLR</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link
-    href="https://fonts.googleapis.com/css2?family=Anta:wght@400;700;800&family=Ubuntu:wght@300;400;500;700&family=JetBrains+Mono:wght@300;400;500&display=swap"
-    rel="stylesheet" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SignCareLoop | Hospital Communication Assistant</title>
 
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Anta&family=Ubuntu:wght@300;400;500;700&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+
   <style>
-    /* Custom CSS only for things Tailwind cannot handle (noise texture, keyframes, overlays) */
     :root {
-      --bg: #04070f;
-      --surface: #0b1121;
-      --card: #101828;
-      --border: #1e2d47;
-      --accent: #00e5ff;
-      --accent2: #7c3aed;
-      --green: #00ffa3;
-      --orange: #ff8c42;
-      --text: #e8edf5;
-      --muted: #5a6a82;
-      --glow: 0 0 30px rgba(0, 229, 255, 0.15);
+      --bg: #f7f8f2;
+      --surface: #ffffff;
+      --card: #ffffff;
+      --border: #dce6dc;
+      --accent: #16845b;
+      --accent2: #247a58;
+      --green: #176b4a;
+      --orange: #b7791f;
+      --text: #18352a;
+      --muted: #62766b;
+      --glow: 0 8px 28px rgba(31, 91, 62, 0.07);
     }
 
-    /* Noise texture overlay - Tailwind can't do this */
-    body::before {
-      content: '';
-      position: fixed;
-      inset: 0;
-      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
-      pointer-events: none;
-      z-index: 0;
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--bg) !important;
+      color: var(--text) !important;
+      font-family: 'Ubuntu', sans-serif;
     }
 
-    /* Custom animations Tailwind can't handle without config */
-    @keyframes pulse-dot {
-
-      0%,
-      100% {
-        opacity: 1;
-        transform: scale(1);
-      }
-
-      50% {
-        opacity: .5;
-        transform: scale(1.4);
-      }
+    nav {
+      background: rgba(255,255,255,.97) !important;
+      border-color: var(--border) !important;
     }
 
-    @keyframes slide-in {
-      from {
-        opacity: 0;
-        transform: translateX(-8px);
-      }
-
-      to {
-        opacity: 1;
-        transform: translateX(0);
-      }
+    /* Cream and emerald theme overrides */
+    [class~="bg-[#101828]"],
+    [class~="bg-[#04070f]"],
+    [class~="bg-[#04070f]/85"],
+    [class~="bg-[#04070f]/95"] {
+      background-color: #fff !important;
     }
 
-    .animate-pulse-dot {
-      animation: pulse-dot 2s infinite;
+    [class~="bg-[#0b1121]"],
+    [class~="bg-[#0b1121]/80"] {
+      background-color: #f0f5ef !important;
     }
 
-    .animate-slide-in {
-      animation: slide-in 0.3s ease;
+    [class~="border-[#1e2d47]"] {
+      border-color: var(--border) !important;
     }
 
-    /* Corner overlays - pure CSS */
+    [class~="text-[#e8edf5]"],
+    [class~="text-[#edf8f2]"] {
+      color: var(--text) !important;
+    }
+
+    [class~="text-[#a1bdb0]"],
+    [class~="text-[#5a6a82]"] {
+      color: var(--muted) !important;
+    }
+
+    [class~="text-[#00e5ff]"],
+    [class~="text-[#00ffa3]"] {
+      color: var(--accent) !important;
+    }
+
+    [class~="bg-[#00e5ff]"] {
+      background-color: var(--accent) !important;
+      color: #fff !important;
+    }
+
+    [class~="bg-[#00ffa3]/5"] {
+      background-color: #e9f5ed !important;
+    }
+
+    [class~="border-[#00ffa3]/30"],
+    [class~="border-[#00e5ff]/30"] {
+      border-color: #b8d9c2 !important;
+    }
+
+    [class~="bg-white/5"] {
+      background-color: #f5f8f3 !important;
+    }
+
+    [class~="bg-[#25483b]"] {
+      background-color: #dce6dc !important;
+    }
+
+    [class~="bg-[#399b79]"] {
+      background-color: var(--accent) !important;
+    }
+
+    [class~="text-[#7af0bd]"],
+    [class~="text-[#55e6b0]"] {
+      color: var(--accent2) !important;
+    }
+
+    h1 {
+      background-image: linear-gradient(90deg, #18352a, #247a58) !important;
+      -webkit-background-clip: text !important;
+      background-clip: text !important;
+      -webkit-text-fill-color: transparent !important;
+    }
+
+    a { text-decoration: none; }
+
+    .nav-link {
+      display: inline-flex;
+      align-items: center;
+      padding: 9px 12px;
+      border-radius: 8px;
+      color: #62766b;
+      font-size: 13px;
+      font-weight: 500;
+      transition: .2s ease;
+    }
+
+    .nav-link:hover,
+    .nav-link.active {
+      color: #176b4a;
+      background: #e9f5ed;
+    }
+
+    #mobileMenu a {
+      display: block;
+      color: #18352a;
+      padding: 10px 12px;
+      border-radius: 8px;
+    }
+
+    #mobileMenu a:hover {
+      background: #e9f5ed;
+      color: #176b4a;
+    }
+
+    main section,
+    main aside > section {
+      border-color: var(--border) !important;
+      box-shadow: var(--glow);
+    }
+
+    button {
+      cursor: pointer;
+      transition: background-color .2s ease, border-color .2s ease, transform .2s ease;
+    }
+
+    button:disabled {
+      opacity: .6;
+      cursor: not-allowed;
+    }
+
+    button:focus-visible,
+    a:focus-visible,
+    input:focus-visible {
+      outline: 2px solid #16845b;
+      outline-offset: 3px;
+    }
+
+    .hospital-message {
+      width: 100%;
+      text-align: left;
+      padding: 11px 13px;
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      background: #f0f5ef;
+      color: var(--text);
+      font-size: 13px;
+      transition: border-color .2s, background .2s, color .2s;
+    }
+
+    .hospital-message:hover,
+    .hospital-message:focus-visible,
+    .hospital-message.selected {
+      border-color: var(--accent);
+      background: #e4f2e8;
+      color: #176b4a;
+    }
+
+    .camera-placeholder {
+      width: 100%;
+      height: 100%;
+      min-height: 240px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #d1e4d7;
+      background: #10251c;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .camera-placeholder .camera-icon {
+      font-size: 3rem;
+      margin-bottom: .5rem;
+    }
+
+    #videoFeed { background: #10251c; }
+
+    /* Keep the camera placeholder from covering the live video. */
+    .camera-placeholder.hidden,
+    #videoFeed.hidden {
+      display: none !important;
+    }
+
     .corner {
       position: absolute;
       width: 20px;
       height: 20px;
+      pointer-events: none;
+      border-color: #55b88a;
     }
 
     .corner.tl {
-      top: 12px;
-      left: 12px;
-      border-top: 2px solid var(--accent);
-      border-left: 2px solid var(--accent);
+      top: 12px; left: 12px;
+      border-top: 2px solid;
+      border-left: 2px solid;
     }
 
     .corner.tr {
-      top: 12px;
-      right: 12px;
-      border-top: 2px solid var(--accent);
-      border-right: 2px solid var(--accent);
+      top: 12px; right: 12px;
+      border-top: 2px solid;
+      border-right: 2px solid;
     }
 
     .corner.bl {
-      bottom: 12px;
-      left: 12px;
-      border-bottom: 2px solid var(--accent);
-      border-left: 2px solid var(--accent);
+      bottom: 12px; left: 12px;
+      border-bottom: 2px solid;
+      border-left: 2px solid;
     }
 
     .corner.br {
-      bottom: 12px;
-      right: 12px;
-      border-bottom: 2px solid var(--accent);
-      border-right: 2px solid var(--accent);
+      bottom: 12px; right: 12px;
+      border-bottom: 2px solid;
+      border-right: 2px solid;
     }
 
-    /* Custom scrollbar */
-    .custom-scroll::-webkit-scrollbar {
-      width: 4px;
-    }
-
-    .custom-scroll::-webkit-scrollbar-track {
-      background: transparent;
-    }
-
+    .custom-scroll::-webkit-scrollbar { width: 5px; }
+    .custom-scroll::-webkit-scrollbar-track { background: transparent; }
     .custom-scroll::-webkit-scrollbar-thumb {
-      background: var(--border);
+      background: #c7d8ca;
       border-radius: 99px;
     }
 
-    /* Mobile menu animation keyframes */
+    @keyframes pulse-dot {
+      0%,100% { opacity: 1; transform: scale(1); }
+      50% { opacity: .5; transform: scale(1.3); }
+    }
+
+    @keyframes slide-in {
+      from { opacity: 0; transform: translateX(-8px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
     @keyframes slideDown {
-      from {
-        opacity: 0;
-        transform: translateY(-10px);
-      }
-
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
+      from { opacity: 0; transform: translateY(-8px); }
+      to { opacity: 1; transform: translateY(0); }
     }
 
-    @keyframes slideUp {
-      from {
-        opacity: 1;
-        transform: translateY(0);
-      }
-
-      to {
-        opacity: 0;
-        transform: translateY(-10px);
-      }
-    }
+    .animate-pulse-dot { animation: pulse-dot 2s infinite; }
+    .animate-slide-in { animation: slide-in .3s ease; }
 
     #mobileMenu.show {
       display: block;
-      animation: slideDown 0.3s ease-out;
+      animation: slideDown .25s ease-out;
     }
 
-    #mobileMenu.hide {
-      animation: slideUp 0.3s ease-out;
-    }
-
-    /* Hamburger animation when menu is open */
     #menuToggle.active span:first-child {
-      transform: rotate(45deg) translate(5px, 5px);
+      transform: rotate(45deg) translate(5px,5px);
     }
 
-    #menuToggle.active span:nth-child(2) {
-      opacity: 0;
-    }
+    #menuToggle.active span:nth-child(2) { opacity: 0; }
 
     #menuToggle.active span:last-child {
-      transform: rotate(-45deg) translate(5px, -5px);
+      transform: rotate(-45deg) translate(5px,-5px);
     }
 
-    /* Prevent body scroll when menu is open on mobile */
-    body.menu-open {
-      overflow: hidden;
+    body.menu-open { overflow: hidden; }
+
+    #sentenceBox,
+    #selectedHospitalMessage {
+      overflow-wrap: anywhere;
+    }
+
+    @media (max-width: 640px) {
+      .main-grid {
+        padding-left: 1rem;
+        padding-right: 1rem;
+      }
+
+      header {
+        padding: 2rem 1rem 1rem !important;
+      }
+
+      #videoFeed,
+      .camera-placeholder {
+        min-height: 240px;
+      }
     }
   </style>
 </head>
 
-<body class="bg-[#04070f] text-[#e8edf5] font-['Ubuntu',sans-serif] min-h-screen overflow-x-hidden">
-
-  <!-- Navigation with Responsive Mobile Menu -->
-  <nav class="sticky top-0 z-[100] bg-[#04070f]/85 backdrop-blur-md border-b border-[#1e2d47]">
+<body class="bg-[#04070f] text-[#e8edf5] min-h-screen overflow-x-hidden">
+  <nav class="sticky top-0 z-[100] backdrop-blur-md border-b">
     <div class="flex items-center justify-between px-4 sm:px-6 md:px-10 h-16">
-      <!-- Logo -->
-      <a href="/"
-        class="flex items-center gap-2.5 font-extrabold text-xl tracking-tight no-underline text-[#e8edf5] font-['Anta',sans-serif]">
-        <div class="w-2.5 h-2.5 bg-[#00e5ff] rounded-full shadow-[0_0_12px_#00e5ff] animate-pulse-dot"></div>
-        RTSLR
+      <a href="/" class="flex items-center gap-2.5 font-extrabold text-xl tracking-tight text-[#e8edf5]" style="font-family:Anta,sans-serif">
+        <span class="w-2.5 h-2.5 bg-[#00e5ff] rounded-full animate-pulse-dot"></span>
+        SignCareLoop
       </a>
 
-      <!-- Desktop Navigation Links (hidden on mobile) -->
       <div class="hidden md:flex gap-0.5">
-        <a href="/"
-          class="px-[18px] py-1.5 rounded-md text-sm font-semibold tracking-wide no-underline text-[#5a6a82] transition-all hover:text-[#e8edf5] hover:bg-[#0b1121]">Index</a>
-        <a href="/change-mode"
-          class="px-[18px] py-1.5 rounded-md text-sm font-semibold tracking-wide no-underline text-[#5a6a82] transition-all hover:text-[#e8edf5] hover:bg-[#0b1121]">Change Mode</a>
-        <a href="/dynamic/inference"
-          class="px-[18px] py-1.5 rounded-md text-sm font-semibold tracking-wide no-underline text-[#00e5ff] bg-[#00e5ff]/10">Inference</a>
-        <a href="/dynamic/session-analytics"
-          class="px-[18px] py-1.5 rounded-md text-sm font-semibold tracking-wide no-underline text-[#5a6a82] transition-all hover:text-[#e8edf5] hover:bg-[#0b1121]">Sesssion
-          Analytics</a>
-        <a href="/dynamic/dataset-analytics"
-          class="px-[18px] py-1.5 rounded-md text-sm font-semibold tracking-wide no-underline text-[#5a6a82] transition-all hover:text-[#e8edf5] hover:bg-[#0b1121]">Dataset
-          Analytics</a>
+        <a href="/" class="nav-link">Home</a>
+        <a href="/change-mode" class="nav-link">Change Mode</a>
+        <a href="/dynamic/inference" class="nav-link active">Inference</a>
+        <a href="/dynamic/session-analytics" class="nav-link">Session Analytics</a>
+        <a href="/dynamic/dataset-analytics" class="nav-link">Dataset Analytics</a>
       </div>
 
-      <!-- Right side items (Status Badge + Mobile Menu) -->
       <div class="flex items-center gap-3">
-        <!-- Model Status Badge (visible on all devices) -->
-        <div id="modelStatusBadge"
-          class="flex items-center gap-2 py-1.5 px-3 sm:px-4 rounded-full text-[0.65rem] sm:text-xs font-bold font-['JetBrains_Mono',monospace] tracking-wide border border-[#00ffa3]/30 bg-[#00ffa3]/5 text-[#00ffa3]">
-          <div class="w-1.5 h-1.5 rounded-full bg-[#00ffa3] animate-pulse-dot"></div>
+        <div id="modelStatusBadge" class="flex items-center gap-2 py-1.5 px-3 sm:px-4 rounded-full text-xs font-bold border">
+          <span class="w-1.5 h-1.5 rounded-full bg-[#00ffa3] animate-pulse-dot"></span>
           <span class="hidden sm:inline">MODEL ACTIVE</span>
           <span class="sm:hidden">ACTIVE</span>
         </div>
 
-        <!-- Mobile Menu Hamburger Button -->
-        <button id="menuToggle"
-          class="md:hidden flex flex-col items-center justify-center w-8 h-8 rounded-md border border-[#1e2d47] bg-transparent hover:border-[#00e5ff] transition-all cursor-pointer">
+        <button id="menuToggle" aria-label="Toggle navigation" aria-expanded="false" class="md:hidden flex flex-col items-center justify-center w-8 h-8 rounded-md border bg-transparent">
           <span class="block w-4 h-0.5 bg-[#5a6a82] rounded-full transition-all duration-300"></span>
           <span class="block w-4 h-0.5 bg-[#5a6a82] rounded-full my-1 transition-all duration-300"></span>
           <span class="block w-4 h-0.5 bg-[#5a6a82] rounded-full transition-all duration-300"></span>
@@ -223,618 +337,634 @@
       </div>
     </div>
 
-    <!-- Mobile Menu Dropdown (hidden by default) -->
-    <div id="mobileMenu"
-      class="md:hidden hidden bg-[#04070f]/95 backdrop-blur-md border-t border-[#1e2d47] overflow-hidden transition-all duration-300">
+    <div id="mobileMenu" class="md:hidden hidden border-t overflow-hidden">
       <div class="flex flex-col py-3 px-4 space-y-1">
-        <a href="/"
-          class="px-4 py-3 rounded-md text-sm font-semibold tracking-wide no-underline text-[#5a6a82] transition-all hover:text-[#e8edf5] hover:bg-[#0b1121] active:bg-[#0b1121] flex items-center gap-3">
-          Index
-        </a>
-        <a href="/change-mode"
-          class="px-4 py-3 rounded-md text-sm font-semibold tracking-wide no-underline text-[#5a6a82] transition-all hover:text-[#e8edf5] hover:bg-[#0b1121] active:bg-[#0b1121] flex items-center gap-3">
-          Change Mode
-        </a>
-        <a href="/dynamic/inference"
-          class="px-4 py-3 rounded-md text-sm font-semibold tracking-wide no-underline text-[#00e5ff] bg-[#00e5ff]/10 transition-all hover:bg-[#00e5ff]/20 flex items-center gap-3">
-          Inference
-        </a>
-        <a href="/dynamic/session-analytics"
-          class="px-4 py-3 rounded-md text-sm font-semibold tracking-wide no-underline text-[#5a6a82] transition-all hover:text-[#e8edf5] hover:bg-[#0b1121] active:bg-[#0b1121] flex items-center gap-3">
-          Analytics
-        </a>
-        <a href="/dynamic/dataset-analytics"
-          class="px-4 py-3 rounded-md text-sm font-semibold tracking-wide no-underline text-[#5a6a82] transition-all hover:text-[#e8edf5] hover:bg-[#0b1121] active:bg-[#0b1121] flex items-center gap-3">
-          Dataset Analytics
-        </a>
+        <a href="/">Home</a>
+        <a href="/change-mode">Change Mode</a>
+        <a href="/dynamic/inference">Inference</a>
+        <a href="/dynamic/session-analytics">Session Analytics</a>
+        <a href="/dynamic/dataset-analytics">Dataset Analytics</a>
       </div>
     </div>
   </nav>
 
-  <!-- Hero Section -->
-  <div class="pt-12 pb-6 px-10 max-w-[1400px] mx-auto">
-    <div
-      class="inline-flex items-center gap-2 text-[0.7rem] tracking-[0.15em] font-bold uppercase font-['JetBrains_Mono',monospace] text-[#00e5ff] mb-4">
-      <span class="w-6 h-px bg-[#00e5ff]"></span>
-      Indian Sign Language · ISL Recognition
-    </div>
-    <h1
-      class="text-[clamp(2rem,4vw,3.5rem)] font-extrabold leading-[1.05] tracking-[-0.04em] bg-gradient-to-r from-white via-white to-[#00e5ff] bg-clip-text text-transparent mb-3 font-['Anta',sans-serif]">
-      Dynamic Inference
-    </h1>
-  </div>
+  <main class="relative z-10">
+    <header class="pt-12 pb-6 px-10 max-w-[1400px] mx-auto">
+      <div class="inline-flex items-center gap-2 text-xs tracking-[0.15em] font-bold uppercase text-[#00e5ff] mb-4">
+        <span class="w-6 h-px bg-[#00e5ff]"></span>
+        Accessible Care · Indian Sign Language
+      </div>
 
-  <!-- Main Grid -->
-  <div class="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-6 px-10 pb-12 max-w-[1400px] mx-auto">
+      <h1 class="text-[clamp(2rem,4vw,3.5rem)] font-extrabold leading-tight tracking-tight mb-3" style="font-family:Anta,sans-serif">
+        Hospital Communication Assistant
+      </h1>
 
-    <!-- VIDEO CARD -->
-    <div
-      class="bg-[#101828] border border-[#1e2d47] rounded-2xl overflow-hidden relative shadow-[0_0_30px_rgba(0,229,255,0.15)]">
-      <div class="flex items-center justify-between p-4 border-b border-[#1e2d47] bg-white/5">
-        <div class="flex items-center gap-2.5">
+      <p class="text-sm sm:text-base text-[#a1bdb0] max-w-2xl">
+        Translate recognized signs into readable text and speech, with quick phrases for common hospital needs.
+      </p>
+    </header>
+
+    <div class="main-grid grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-6 px-10 pb-12 max-w-[1400px] mx-auto">
+
+      <!-- LIVE INFERENCE -->
+      <section class="border rounded-2xl overflow-hidden relative">
+        <div class="flex items-center justify-between p-4 border-b bg-white/5">
           <div>
-            <div class="text-sm font-bold tracking-wide font-['Anta',sans-serif]">Live Camera Feed</div>
-            <div class="text-[0.7rem] text-[#5a6a82] font-['JetBrains_Mono',monospace]">Pose + Hand landmark detection
+            <div class="text-sm font-bold" style="font-family:Anta,sans-serif">Live Camera Feed</div>
+            <div class="text-xs text-[#5a6a82]">Pose + hand landmark detection</div>
+          </div>
+
+          <div class="flex items-center gap-3">
+            <button id="cameraToggleBtn" type="button" class="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold border bg-[#0b1121]/80">
+              <span id="cameraToggleIcon">📷❌</span>
+              <span id="cameraToggleText">Turn On</span>
+            </button>
+            <div class="flex items-center gap-1.5 text-xs font-bold text-red-500">
+              <span class="w-2 h-2 rounded-full bg-red-500 animate-pulse-dot"></span>
+              LIVE
             </div>
           </div>
         </div>
-        <div class="flex items-center gap-3">
-          <!-- Camera Toggle Button - Updated with better styling -->
-          <button id="cameraToggleBtn"
-            class="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold font-['JetBrains_Mono',monospace] tracking-wide border transition-all bg-[#0b1121]/80 border-[#1e2d47] text-[#5a6a82] hover:border-[#00e5ff] hover:text-[#00e5ff]">
-            <span id="cameraToggleIcon">📷❌</span>
-            <span id="cameraToggleText">Turn On</span>
-          </button>
-          <div class="flex items-center gap-1.5 text-xs font-bold text-[#ff4444] font-['JetBrains_Mono',monospace]">
-            <div class="w-2 h-2 rounded-full bg-[#ff4444] shadow-[0_0_8px_#ff4444] animate-pulse-dot"></div>
-            REC
+
+        <div class="relative aspect-[4/3] bg-black">
+          <img id="videoFeed" src="" alt="Live sign language camera feed" class="w-full h-full object-cover hidden">
+
+          <div id="cameraPlaceholder" class="camera-placeholder absolute inset-0">
+            <div class="camera-icon">📷</div>
+            <div>CAMERA OFF</div>
+            <div class="text-xs mt-2">Press “Turn On” to start recognition</div>
+          </div>
+
+          <div class="corner tl"></div>
+          <div class="corner tr"></div>
+          <div class="corner bl"></div>
+          <div class="corner br"></div>
+
+          <div class="absolute bottom-4 left-4 right-4 bg-[#04070f]/90 backdrop-blur-md border border-[#00e5ff]/30 rounded-xl p-4 flex items-center justify-between">
+            <div>
+              <div class="text-xs text-[#5a6a82] uppercase mb-1">Detected Gesture</div>
+              <div id="predGesture" class="text-2xl font-extrabold uppercase text-[#00e5ff]" style="font-family:Anta,sans-serif">—</div>
+            </div>
+            <div class="text-right">
+              <div class="text-xs text-[#5a6a82]">Confidence</div>
+              <span id="predConf" class="text-2xl font-medium text-[#00ffa3] block">0.0%</span>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div class="relative aspect-[4/3] bg-black">
-        <img id="videoFeed" src="/dynamic/video_feed" alt="Live Feed" class="w-full h-full object-cover block" />
-        <div class="corner tl"></div>
-        <div class="corner tr"></div>
-        <div class="corner bl"></div>
-        <div class="corner br"></div>
-
-        <!-- Prediction Overlay -->
-        <div
-          class="absolute bottom-4 left-4 right-4 bg-[#04070f]/90 backdrop-blur-md border border-[#00e5ff]/30 rounded-xl p-[14px_18px] flex items-center justify-between">
-          <div>
-            <div
-              class="text-[0.65rem] text-[#5a6a82] font-['JetBrains_Mono',monospace] tracking-[0.08em] uppercase mb-1">
-              Detected Gesture</div>
-            <div id="predGesture"
-              class="text-[1.6rem] font-extrabold tracking-[-0.03em] uppercase text-[#00e5ff] drop-shadow-[0_0_20px_rgba(0,229,255,0.4)] transition-all duration-300 font-['Anta',sans-serif]">
-              —</div>
+        <div class="p-5 border-t">
+          <div class="flex justify-between items-center text-xs font-semibold uppercase mb-2.5">
+            <span>Confidence Level</span>
+            <span id="confPct" class="text-[#00e5ff]">0.0%</span>
           </div>
-          <div class="font-['JetBrains_Mono',monospace] text-right">
-            <div class="text-[0.7rem] text-[#5a6a82]">Confidence</div>
-            <span id="predConf" class="text-[1.5rem] font-medium text-[#00ffa3] block text-right">0.0%</span>
+          <div class="h-2 bg-[#1e2d47] rounded-full overflow-hidden">
+            <div id="confBar" class="h-full rounded-full bg-[#399b79] transition-all duration-300" style="width:0%"></div>
           </div>
         </div>
-      </div>
 
-      <!-- Confidence Bar -->
-      <div class="p-5 border-t border-[#1e2d47]">
-        <div
-          class="flex justify-between items-center text-[0.75rem] font-semibold tracking-[0.06em] uppercase text-[#5a6a82] mb-2.5 font-['JetBrains_Mono',monospace]">
-          <span>Confidence Level</span>
-          <span id="confPct" class="text-[#00e5ff]">0.0%</span>
+        <!-- SPEECH CONTROLS -->
+        <div class="px-5 pb-5 border-t pt-4">
+          <div class="text-xs uppercase tracking-widest text-[#5a6a82] mb-3">Speak Recognized Signs</div>
+
+          <div class="flex flex-wrap gap-2 items-center">
+            <button id="speakPredictionBtn" type="button" class="px-4 py-2 rounded-lg bg-[#00e5ff] text-white font-bold text-sm">
+              Speak sign
+            </button>
+            <button id="stopSpeechBtn" type="button" class="px-4 py-2 rounded-lg border text-sm">
+              Stop voice
+            </button>
+          </div>
+
+          <label class="flex items-center gap-2 mt-3 text-sm text-[#a1bdb0] cursor-pointer">
+            <input id="autoSpeakToggle" type="checkbox" class="accent-emerald-600 w-4 h-4">
+            Automatically speak new predictions
+          </label>
+
+          <p id="speechStatus" role="status" aria-live="polite" class="text-xs text-[#a1bdb0] mt-2">
+            Speech is off. Click Speak sign to hear the current prediction.
+          </p>
         </div>
-        <div class="h-1.5 bg-[#1e2d47] rounded-full overflow-hidden">
-          <div id="confBar"
-            class="h-full rounded-full bg-gradient-to-r from-[#7c3aed] to-[#00e5ff] shadow-[0_0_12px_rgba(0,229,255,0.5)] transition-all duration-300"
-            style="width:0%"></div>
+
+        <!-- HOSPITAL QUICK MESSAGES -->
+        <div id="hospitalQuickMessages" class="px-5 pb-5 border-t pt-4">
+          <div class="text-xs uppercase tracking-widest text-[#5a6a82] mb-1">Hospital Quick Messages</div>
+          <p class="text-xs text-[#a1bdb0] mb-3">
+            Select a phrase to display and speak it. These are typed selections, not signs recognized by the webcam.
+          </p>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <button type="button" class="hospital-message" data-message="I need help">I need help</button>
+            <button type="button" class="hospital-message" data-message="Please call a doctor">Please call a doctor</button>
+            <button type="button" class="hospital-message" data-message="I am in pain">I am in pain</button>
+            <button type="button" class="hospital-message" data-message="I need water">I need water</button>
+            <button type="button" class="hospital-message" data-message="I do not understand">I do not understand</button>
+            <button type="button" class="hospital-message" data-message="Please write it down">Please write it down</button>
+            <button type="button" class="hospital-message" data-message="Yes">Yes</button>
+            <button type="button" class="hospital-message" data-message="No">No</button>
+          </div>
+
+          <div class="mt-3 rounded-lg border bg-[#0b1121] p-3">
+            <div class="text-xs text-[#a1bdb0] mb-1">Selected message</div>
+            <p id="selectedHospitalMessage" class="text-sm">No message selected.</p>
+            <p id="hospitalMessageStatus" role="status" aria-live="polite" class="text-xs text-[#55e6b0] mt-2">
+              Choose a message above.
+            </p>
+
+            <div class="flex flex-wrap gap-2 mt-3">
+              <button id="speakHospitalMessageBtn" type="button" class="px-4 py-2 rounded-lg bg-[#00e5ff] text-white font-bold text-sm">
+                Speak message
+              </button>
+              <button id="clearHospitalMessageBtn" type="button" class="px-4 py-2 rounded-lg border text-sm">
+                Clear
+              </button>
+            </div>
+          </div>
         </div>
-      </div>
 
-      <!-- Top 5 Candidates -->
-      <div class="px-5 pb-5">
-        <div
-          class="text-[0.7rem] font-semibold tracking-[0.1em] uppercase text-[#5a6a82] mb-3 font-['JetBrains_Mono',monospace]">
-          Top Candidates</div>
-        <div id="top5List" class="space-y-2"></div>
-      </div>
-    </div>
-
-    <!-- RIGHT COLUMN -->
-    <div class="flex flex-col gap-5">
-
-      <!-- Session Stats -->
-      <div class="bg-[#101828] border border-[#1e2d47] rounded-2xl overflow-hidden">
-        <div
-          class="flex items-center justify-between px-5 py-[0.875rem] border-b border-[#1e2d47] text-[0.8rem] font-bold uppercase tracking-[0.06em] text-[#5a6a82] font-['JetBrains_Mono',monospace]">
-          Session Stats
-          <span id="sessionTimer" class="text-[#00e5ff] text-[0.65rem]">00:00</span>
+        <!-- TOP CANDIDATES -->
+        <div class="px-5 pb-5">
+          <div class="text-xs font-semibold uppercase mb-3">Top Candidates</div>
+          <div id="top5List" class="space-y-2">
+            <p class="text-sm text-[#a1bdb0]">Predictions will appear here when available.</p>
+          </div>
         </div>
-        <div class="p-5">
-          <div class="grid grid-cols-2 gap-3.5">
-            <div class="bg-[#0b1121] rounded-xl p-[0.875rem_1rem] border border-[#1e2d47]">
-              <div id="statTotal"
-                class="text-[1.75rem] font-extrabold tracking-[-0.04em] text-[#00e5ff] leading-tight mb-0.5 font-['Anta',sans-serif]">
-                0</div>
-              <div
-                class="text-[0.7rem] text-[#5a6a82] font-semibold uppercase tracking-[0.06em] font-['JetBrains_Mono',monospace]">
-                Predictions</div>
-            </div>
-            <div class="bg-[#0b1121] rounded-xl p-[0.875rem_1rem] border border-[#1e2d47]">
-              <div id="statUnique"
-                class="text-[1.75rem] font-extrabold tracking-[-0.04em] text-[#00e5ff] leading-tight mb-0.5 font-['Anta',sans-serif]">
-                0</div>
-              <div
-                class="text-[0.7rem] text-[#5a6a82] font-semibold uppercase tracking-[0.06em] font-['JetBrains_Mono',monospace]">
-                Unique Signs</div>
-            </div>
-            <div class="bg-[#0b1121] rounded-xl p-[0.875rem_1rem] border border-[#1e2d47]">
-              <div id="statAvgConf"
-                class="text-[1.75rem] font-extrabold tracking-[-0.04em] text-[#00ffa3] leading-tight mb-0.5 font-['Anta',sans-serif]">
-                0%</div>
-              <div
-                class="text-[0.7rem] text-[#5a6a82] font-semibold uppercase tracking-[0.06em] font-['JetBrains_Mono',monospace]">
-                Avg Accuracy</div>
-            </div>
-            <div class="bg-[#0b1121] rounded-xl p-[0.875rem_1rem] border border-[#1e2d47]">
-              <div id="statTopSign" class="text-sm font-bold text-[#e8edf5] pt-1 truncate font-['Anta',sans-serif]">—
+      </section>
+
+      <!-- SESSION INFORMATION -->
+      <aside class="flex flex-col gap-5">
+
+        <section class="border rounded-2xl overflow-hidden">
+          <div class="flex items-center justify-between px-5 py-4 border-b text-sm font-bold uppercase">
+            <span>Session Overview</span>
+            <span id="sessionTimer" class="text-xs text-[#55e6b0]">00:00</span>
+          </div>
+
+          <div class="p-5">
+            <div class="grid grid-cols-2 gap-3.5">
+              <div class="bg-[#0b1121] rounded-xl p-4 border">
+                <div id="statTotal" class="text-3xl font-extrabold text-[#55e6b0]">0</div>
+                <div class="text-xs text-[#a1bdb0] font-semibold uppercase">Predictions</div>
               </div>
-              <div
-                class="text-[0.7rem] text-[#5a6a82] font-semibold uppercase tracking-[0.06em] font-['JetBrains_Mono',monospace]">
-                Most Used</div>
+
+              <div class="bg-[#0b1121] rounded-xl p-4 border">
+                <div id="statUnique" class="text-3xl font-extrabold text-[#55e6b0]">0</div>
+                <div class="text-xs text-[#a1bdb0] font-semibold uppercase">Unique Signs</div>
+              </div>
+
+              <div class="bg-[#0b1121] rounded-xl p-4 border">
+                <div id="statAvgConf" class="text-3xl font-extrabold text-[#7af0bd]">0%</div>
+                <div class="text-xs text-[#a1bdb0] font-semibold uppercase">Avg Confidence</div>
+              </div>
+
+              <div class="bg-[#0b1121] rounded-xl p-4 border">
+                <div id="statTopSign" class="text-sm font-bold pt-2 truncate">—</div>
+                <div class="text-xs text-[#a1bdb0] font-semibold uppercase">Most Used</div>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
+        </section>
 
-      <!-- Sentence Builder -->
-      <div class="bg-[#101828] border border-[#1e2d47] rounded-2xl overflow-hidden">
-        <div
-          class="px-5 py-[0.875rem] border-b border-[#1e2d47] text-[0.8rem] font-bold uppercase tracking-[0.06em] text-[#5a6a82] font-['JetBrains_Mono',monospace]">
-          Sentence Builder</div>
-        <div class="p-5">
-          <div id="sentenceBox"
-            class="bg-[#0b1121] border border-[#1e2d47] rounded-xl p-4 min-h-[64px] text-base font-semibold text-[#e8edf5] break-words leading-relaxed">
-            <span id="sentencePlaceholder" class="text-[#5a6a82] italic font-normal text-sm">Detected signs appear
-              here...</span>
-          </div>
-          <div class="flex gap-2 mt-3">
-            <button onclick="undoWord()"
-              class="px-4 py-1.5 rounded-lg text-xs font-bold uppercase border border-[#1e2d47] text-[#5a6a82] bg-transparent hover:border-[#00e5ff] hover:text-[#00e5ff] transition-all cursor-pointer">↩
-              Undo</button>
-            <button onclick="clearSentence()"
-              class="px-4 py-1.5 rounded-lg text-xs font-bold uppercase border border-red-500/40 text-[#ff4444] bg-transparent hover:bg-red-500/10 transition-all cursor-pointer">✕
-              Clear</button>
-          </div>
-        </div>
-      </div>
+        <!-- SENTENCE BUILDER -->
+        <section class="border rounded-2xl overflow-hidden">
+          <div class="px-5 py-4 border-b text-sm font-bold uppercase">Build a Sentence</div>
+          <div class="p-5">
+            <div id="sentenceBox" class="bg-[#0b1121] border rounded-xl p-4 min-h-[64px] text-base font-semibold break-words leading-relaxed">
+              <span id="sentencePlaceholder" class="text-[#a1bdb0] italic font-normal text-sm">Detected signs appear here...</span>
+            </div>
 
-      <!-- Recognition History -->
-      <div class="bg-[#101828] border border-[#1e2d47] rounded-2xl overflow-hidden">
-        <div
-          class="flex items-center justify-between px-5 py-[0.875rem] border-b border-[#1e2d47] text-[0.8rem] font-bold uppercase tracking-[0.06em] text-[#5a6a82] font-['JetBrains_Mono',monospace]">
-          Recognition History
-          <span id="histCount" class="text-[#5a6a82] text-[0.65rem]">0 entries</span>
-        </div>
-        <div class="px-5">
-          <div id="historyFeed" class="max-h-[320px] overflow-y-auto custom-scroll">
-            <div class="text-center py-8 text-[#5a6a82] text-sm font-['JetBrains_Mono',monospace]">
-              <span class="text-2xl block mb-2">👐</span>
-              Start signing to see predictions
+            <div class="flex gap-2 mt-3">
+              <button id="undoWordBtn" class="px-4 py-2 rounded-lg text-xs font-bold uppercase border">
+                ↩ Undo
+              </button>
+              <button id="clearSentenceBtn" class="px-4 py-2 rounded-lg text-xs font-bold uppercase border border-red-300 text-red-600">
+                ✕ Clear
+              </button>
             </div>
           </div>
-        </div>
-      </div>
+        </section>
 
+        <!-- RECENT RECOGNITIONS -->
+        <section class="border rounded-2xl overflow-hidden">
+          <div class="flex items-center justify-between px-5 py-4 border-b text-sm font-bold uppercase">
+            <span>Recent Recognitions</span>
+            <span id="histCount" class="text-xs">0 entries</span>
+          </div>
+
+          <div class="px-5">
+            <div id="historyFeed" class="max-h-[320px] overflow-y-auto custom-scroll">
+              <div class="text-center py-8 text-[#a1bdb0] text-sm">
+                <span class="text-2xl block mb-2">👐</span>
+                Start signing to see predictions
+              </div>
+            </div>
+          </div>
+        </section>
+      </aside>
     </div>
-  </div>
+  </main>
 
   <script>
-    // Sentence builder storage
+    const $ = (id) => document.getElementById(id);
+
     let sentenceWords = [];
-    let lastHistoryCount = 0;
+    let lastHistoryCount = -1;
     let lastGesture = '';
     let sessionStart = Date.now();
+    let cameraActive = false;
+    let selectedHospitalMessage = '';
+    let autoSpeakEnabled = false;
+    let lastObservedPrediction = '';
 
-    // Camera state - Default: OFF
-    let cameraActive = false; // Changed from true to false
-    const videoImg = document.getElementById('videoFeed');
-    const toggleBtn = document.getElementById('cameraToggleBtn');
-    const toggleIcon = document.getElementById('cameraToggleIcon');
-    const toggleText = document.getElementById('cameraToggleText');
+    const videoImg = $('videoFeed');
+    const cameraPlaceholder = $('cameraPlaceholder');
+    const toggleBtn = $('cameraToggleBtn');
+    const toggleIcon = $('cameraToggleIcon');
+    const toggleText = $('cameraToggleText');
 
-    // Camera toggle function (UI only - backend handles actual feed)
+    const speechSupported =
+      ('speechSynthesis' in window) &&
+      ('SpeechSynthesisUtterance' in window);
+
+    function showToast(message, type = 'info') {
+      document.querySelector('.camera-toast')?.remove();
+
+      const toast = document.createElement('div');
+      toast.className = 'camera-toast fixed bottom-6 left-1/2 -translate-x-1/2 z-[200] px-4 py-3 rounded-lg text-sm font-bold shadow-xl';
+      toast.style.background =
+        type === 'error' ? '#b91c1c' :
+        type === 'success' ? '#d9f2e3' : '#e4f2e8';
+      toast.style.color = type === 'error' ? '#fff' : '#18352a';
+      toast.textContent = message;
+
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 2600);
+    }
+
     function setCameraState(active) {
-      if (active) {
-        videoImg.src = '/video_feed';
-        toggleIcon.textContent = '📷';
-        toggleText.textContent = 'Turn Off';
-        // Add a small visual feedback that camera is now ON
-        videoImg.style.opacity = '1';
-      } else {
-        videoImg.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 640 480'%3E%3Crect width='100%25' height='100%25' fill='%23040f1a'/%3E%3Ccircle cx='320' cy='240' r='60' fill='%231e2d47'/%3E%3Cline x1='320' y1='180' x2='320' y2='240' stroke='%235a6a82' stroke-width='3'/%3E%3Cline x1='320' y1='300' x2='320' y2='310' stroke='%235a6a82' stroke-width='3'/%3E%3Ctext x='50%25' y='55%25' font-family='monospace' font-size='20' fill='%235a6a82' text-anchor='middle' dy='.3em'%3ECAMERA%3C/text%3E%3Ctext x='50%25' y='62%25' font-family='monospace' font-size='16' fill='%235a6a82' text-anchor='middle'%3EOFF%3C/text%3E%3C/svg%3E";
-        toggleIcon.textContent = '📷❌';
-        toggleText.textContent = 'Turn On';
-      }
       cameraActive = active;
-    }
 
-    // Request camera permission from browser
-    async function requestCameraPermission() {
-      try {
-        // Request permission without actually opening the stream
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
-            facingMode: 'user'
-          },
-          audio: false
-        });
+      toggleIcon.textContent = active ? '📷' : '📷❌';
+      toggleText.textContent = active ? 'Turn Off' : 'Turn On';
 
-        // Stop the stream immediately (we just needed permission)
-        stream.getTracks().forEach(track => track.stop());
+      videoImg.classList.toggle('hidden', !active);
+      cameraPlaceholder.classList.toggle('hidden', active);
 
-        return { granted: true, message: 'Camera permission granted' };
-      } catch (error) {
-        if (error.name === 'NotAllowedError') {
-          return { granted: false, message: 'Camera permission denied by user' };
-        } else if (error.name === 'NotFoundError') {
-          return { granted: false, message: 'No camera device found' };
-        } else if (error.name === 'NotReadableError') {
-          return { granted: false, message: 'Camera is being used by another application' };
-        } else {
-          return { granted: false, message: 'Camera access error: ' + error.message };
-        }
-      }
-    }
-
-    // Check if camera permission is already granted
-    async function checkCameraPermission() {
-      try {
-        const permissions = await navigator.permissions.query({ name: 'camera' });
-        return permissions.state; // 'granted', 'denied', or 'prompt'
-      } catch (error) {
-        return 'prompt'; // Fallback if permissions API not supported
+      if (active) {
+        videoImg.src = '/dynamic/video_feed?_t=' + Date.now();
+      } else {
+        videoImg.removeAttribute('src');
       }
     }
 
     async function toggleCamera() {
-      const newState = !cameraActive;
+      console.log(
+        '[CAMERA DEBUG] Button clicked.',
+        'Current state:', cameraActive,
+        'Next state:', !cameraActive,
+        'Time:', new Date().toLocaleTimeString()
+      );
 
-      if (newState) {
-        // Turning camera ON - request permission first
-        videoImg.style.opacity = '0.5';
-        toggleText.textContent = 'Requesting...';
-        toggleIcon.textContent = '📷⏳';
+      const nextState = !cameraActive;
 
-        // Check current permission status
-        const permissionStatus = await checkCameraPermission();
+      toggleBtn.disabled = true;
+      toggleText.textContent = nextState ? 'Starting…' : 'Stopping…';
 
-        if (permissionStatus === 'denied') {
-          // Permission was previously denied
-          showToast('Camera permission denied. Please enable in browser settings.', 'error');
-          setCameraState(false);
+      try {
+        const response = await fetch('/dynamic/api/camera/control', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ camera_on: nextState })
+        });
 
-          // Show instructions to enable permission
-          showPermissionInstructions();
-          return;
+        if (!response.ok) {
+          throw new Error('The server could not change the camera state.');
         }
 
-        // Request camera permission
-        const permission = await requestCameraPermission();
+        setCameraState(nextState);
+        showToast(nextState ? 'Camera activated' : 'Camera turned off', 'success');
+      } catch (error) {
+        console.error('Camera control error:', error);
+        setCameraState(cameraActive);
+        showToast('Camera control failed. Check that the Flask server is running.', 'error');
+      } finally {
+        toggleBtn.disabled = false;
+      }
+    }
 
-        if (!permission.granted) {
-          showToast(permission.message, 'error');
-          setCameraState(false);
-          return;
+    toggleBtn.addEventListener('click', toggleCamera);
+
+    function speakText(text, statusElement) {
+      if (!speechSupported) {
+        statusElement.textContent = 'Speech is not supported in this browser. Try Chrome or Edge.';
+        return;
+      }
+
+      const cleanText = String(text || '').trim();
+
+      if (!cleanText || ['—', 'WAITING...', 'IDLE', 'THINKING...'].includes(cleanText.toUpperCase())) {
+        statusElement.textContent = 'No text is available to speak yet.';
+        return;
+      }
+
+      window.speechSynthesis.cancel();
+
+      const utterance = new SpeechSynthesisUtterance(cleanText.replace(/_/g, ' '));
+      utterance.lang = 'en-IN';
+      utterance.rate = 0.9;
+
+      utterance.onstart = () => {
+        statusElement.textContent = 'Speaking: ' + cleanText.replace(/_/g, ' ');
+      };
+
+      utterance.onend = () => {
+        statusElement.textContent = 'Finished speaking.';
+      };
+
+      utterance.onerror = (event) => {
+        if (event.error !== 'canceled' && event.error !== 'interrupted') {
+          statusElement.textContent = 'Speech could not start. Click the speak button and try again.';
         }
+      };
 
-        // Permission granted - now call backend to start camera
-        try {
-          const response = await fetch('/dynamic/api/camera/control', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ camera_on: true })
-          });
+      window.speechSynthesis.speak(utterance);
+    }
 
-          if (response.ok) {
-            setCameraState(true);
-            videoImg.src = '/dynamic/video_feed?_t=' + Date.now();
-            videoImg.style.opacity = '1';
-            showToast('Camera activated successfully', 'success');
-          } else {
-            throw new Error('Backend failed to start camera');
-          }
-        } catch (error) {
-          console.error('Camera start error:', error);
-          showToast('Failed to start camera: ' + error.message, 'error');
-          setCameraState(false);
-        }
+    $('speakPredictionBtn').addEventListener('click', () => {
+      speakText($('predGesture').textContent.trim(), $('speechStatus'));
+    });
+
+    $('stopSpeechBtn').addEventListener('click', () => {
+      if (speechSupported) window.speechSynthesis.cancel();
+
+      $('speechStatus').textContent = 'Speech stopped.';
+      $('hospitalMessageStatus').textContent =
+        selectedHospitalMessage ? 'Message selected.' : 'Choose a message above.';
+    });
+
+    $('autoSpeakToggle').addEventListener('change', (event) => {
+      autoSpeakEnabled = event.target.checked;
+
+      $('speechStatus').textContent = autoSpeakEnabled
+        ? 'Auto-speak enabled. New predictions will be spoken.'
+        : 'Auto-speak disabled.';
+    });
+
+    document.querySelectorAll('.hospital-message').forEach((button) => {
+      button.addEventListener('click', () => {
+        selectedHospitalMessage = button.dataset.message || '';
+
+        $('selectedHospitalMessage').textContent = selectedHospitalMessage;
+        $('hospitalMessageStatus').textContent =
+          'Manually selected message — not a webcam prediction.';
+
+        document.querySelectorAll('.hospital-message').forEach((item) => {
+          item.classList.toggle('selected', item === button);
+        });
+      });
+    });
+
+    $('speakHospitalMessageBtn').addEventListener('click', () => {
+      if (!selectedHospitalMessage) {
+        $('hospitalMessageStatus').textContent = 'Select a message first.';
+        return;
+      }
+
+      speakText(selectedHospitalMessage, $('hospitalMessageStatus'));
+    });
+
+    $('clearHospitalMessageBtn').addEventListener('click', () => {
+      selectedHospitalMessage = '';
+
+      $('selectedHospitalMessage').textContent = 'No message selected.';
+      $('hospitalMessageStatus').textContent = 'Choose a message above.';
+
+      document.querySelectorAll('.hospital-message').forEach((button) => {
+        button.classList.remove('selected');
+      });
+    });
+
+    function renderSentence() {
+      const box = $('sentenceBox');
+
+      if (sentenceWords.length === 0) {
+        box.innerHTML =
+          '<span id="sentencePlaceholder" class="text-[#a1bdb0] italic font-normal text-sm">Detected signs appear here...</span>';
       } else {
-        // Turning camera OFF
-        try {
-          await fetch('/dynamic/api/camera/control', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ camera_on: false })
-          });
+        box.textContent = sentenceWords.join(' ');
+      }
+    }
 
-          setCameraState(false);
-          showToast('Camera turned off', 'info');
-        } catch (error) {
-          console.error('Camera stop error:', error);
-          setCameraState(!cameraActive); // Revert state
-          showToast('Failed to turn off camera', 'error');
+    function undoWord() {
+      sentenceWords.pop();
+      renderSentence();
+    }
+
+    function clearSentence() {
+      sentenceWords = [];
+      lastGesture = '';
+      renderSentence();
+    }
+
+    $('undoWordBtn').addEventListener('click', undoWord);
+    $('clearSentenceBtn').addEventListener('click', clearSentence);
+
+    function escapeHTML(value) {
+      return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function updateUI(data) {
+      if (!data || typeof data !== 'object') return;
+
+      const gesture = data.prediction || '—';
+      const confidence = Number(data.confidence || 0);
+
+      const shownGesture = ['Waiting...', 'Idle', 'Thinking...'].includes(gesture)
+        ? '—'
+        : String(gesture).replace(/_/g, ' ').toUpperCase();
+
+      $('predGesture').textContent = shownGesture;
+      $('predConf').textContent = confidence.toFixed(1) + '%';
+      $('confPct').textContent = confidence.toFixed(1) + '%';
+
+      $('confBar').style.width =
+        Math.max(0, Math.min(100, confidence)) + '%';
+
+      $('statTotal').textContent = data.total_predictions || 0;
+
+      const counts = data.session_counts || {};
+      $('statUnique').textContent = Object.keys(counts).length;
+
+      const history = Array.isArray(data.history) ? data.history : [];
+
+      if (history.length) {
+        const average =
+          history.reduce((sum, item) => sum + Number(item.confidence || 0), 0) /
+          history.length;
+
+        $('statAvgConf').textContent = average.toFixed(1) + '%';
+
+        const topEntry = Object.entries(counts)
+          .sort((a, b) => b[1] - a[1])[0];
+
+        $('statTopSign').textContent =
+          topEntry ? topEntry[0].replace(/_/g, ' ') : '—';
+      } else {
+        $('statAvgConf').textContent = '0%';
+        $('statTopSign').textContent = '—';
+      }
+
+      // Top five prediction candidates
+      const probabilities = data.all_probs || {};
+
+      const topFive = Object.entries(probabilities)
+        .sort((a, b) => Number(b[1]) - Number(a[1]))
+        .slice(0, 5);
+
+      $('top5List').innerHTML = topFive.length
+        ? topFive.map(([label, probability]) => {
+            const p = Math.max(0, Math.min(100, Number(probability) || 0));
+            const safeLabel = escapeHTML(label.replace(/_/g, ' '));
+
+            return `
+              <div class="flex items-center gap-2.5 mb-3">
+                <div class="text-xs font-semibold w-[110px] whitespace-nowrap overflow-hidden text-ellipsis">${safeLabel}</div>
+                <div class="flex-1 h-2 bg-[#25483b] rounded-full overflow-hidden">
+                  <div class="h-full rounded-full bg-[#399b79]" style="width:${p}%"></div>
+                </div>
+                <div class="text-xs w-10 text-right">${p.toFixed(1)}%</div>
+              </div>`;
+          }).join('')
+        : '<p class="text-sm text-[#a1bdb0]">No candidate scores available.</p>';
+
+      // Recognition history
+      if (history.length !== lastHistoryCount) {
+        $('histCount').textContent =
+          history.length + (history.length === 1 ? ' entry' : ' entries');
+
+        $('historyFeed').innerHTML = history.length
+          ? [...history].reverse().map((item) => {
+              const gestureText = escapeHTML(
+                String(item.gesture || 'Unknown').replace(/_/g, ' ')
+              );
+
+              const timestamp = escapeHTML(String(item.timestamp || ''));
+
+              return `
+                <div class="flex items-center gap-3 py-3 border-b border-[#dce6dc] animate-slide-in">
+                  <div class="flex-1 font-bold text-sm uppercase">${gestureText}</div>
+                  <div class="text-xs text-[#247a58]">${Number(item.confidence || 0).toFixed(1)}%</div>
+                  <div class="text-xs text-[#62766b]">${timestamp}</div>
+                </div>`;
+            }).join('')
+          : `<div class="text-center py-8 text-[#a1bdb0] text-sm">
+               <span class="text-2xl block mb-2">👐</span>
+               Start signing to see predictions
+             </div>`;
+
+        lastHistoryCount = history.length;
+      }
+
+      // Add newly detected gestures to the sentence builder
+      const normalized = String(gesture).trim();
+
+      if (
+        normalized &&
+        !['Waiting...', 'Idle', 'Thinking...', '—'].includes(normalized) &&
+        normalized !== lastGesture
+      ) {
+        lastGesture = normalized;
+        sentenceWords.push(normalized.replace(/_/g, ' '));
+        renderSentence();
+      }
+
+      // Automatically speak new predictions when enabled
+      if (
+        normalized &&
+        normalized !== lastObservedPrediction &&
+        !['Waiting...', 'Idle', 'Thinking...', '—'].includes(normalized)
+      ) {
+        lastObservedPrediction = normalized;
+
+        if (autoSpeakEnabled) {
+          speakText(normalized, $('speechStatus'));
         }
       }
     }
 
-    function showPermissionInstructions() {
-      const instructions = `
-    <div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); 
-                background: #101828; border: 2px solid #00e5ff; border-radius: 16px; 
-                padding: 30px; z-index: 1000; max-width: 400px; text-align: center;
-                box-shadow: 0 0 50px rgba(0, 229, 255, 0.3);">
-      <div style="font-size: 48px; margin-bottom: 15px;">📷</div>
-      <h3 style="font-family: 'Anta', sans-serif; color: #00e5ff; margin-bottom: 15px; 
-                 font-size: 1.5rem;">Camera Access Required</h3>
-      <p style="color: #e8edf5; margin-bottom: 20px; line-height: 1.6;">
-        To enable camera access:<br><br>
-        <strong style="color: #00ffa3;">Chrome/Edge:</strong> Click the lock icon 🔒 in the address bar → 
-        Allow Camera<br><br>
-        <strong style="color: #00ffa3;">Firefox:</strong> Click the camera icon in address bar → 
-        Allow Camera<br><br>
-        Then refresh the page.
-      </p>
-      <button onclick="this.closest('div[style*=fixed]').remove()" 
-              style="background: #00e5ff; color: #04070f; border: none; padding: 12px 30px; 
-                     border-radius: 8px; font-weight: bold; cursor: pointer; font-family: 'Ubuntu', sans-serif;">
-        Got it
-      </button>
-    </div>
-    <div style="position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 999;" 
-         onclick="this.nextElementSibling.remove()"></div>
-  `;
-      document.body.insertAdjacentHTML('beforeend', instructions);
+    async function pollState() {
+      try {
+        const response = await fetch('/dynamic/api/state', {
+          cache: 'no-store'
+        });
+
+        if (!response.ok) return;
+
+        updateUI(await response.json());
+      } catch (error) {
+        // Keep the interface usable during temporary backend interruptions.
+      }
     }
 
-    // Check camera permission on page load
-    window.addEventListener('load', async () => {
-      const status = await checkCameraPermission();
-      if (status === 'granted') {
-        console.log('Camera permission already granted');
-      } else if (status === 'denied') {
-        console.log('Camera permission previously denied');
-        // Optionally show a small indicator
-        showToast('Camera permission denied. Click to enable.', 'info');
+    pollState();
+    setInterval(pollState, 500);
+
+    // Session timer
+    setInterval(() => {
+      const elapsed = Math.floor((Date.now() - sessionStart) / 1000);
+
+      $('sessionTimer').textContent =
+        String(Math.floor(elapsed / 60)).padStart(2, '0') +
+        ':' +
+        String(elapsed % 60).padStart(2, '0');
+    }, 1000);
+
+    // Mobile navigation
+    const menuToggle = $('menuToggle');
+    const mobileMenu = $('mobileMenu');
+
+    menuToggle.addEventListener('click', (event) => {
+      event.stopPropagation();
+
+      const isOpen = mobileMenu.classList.toggle('show');
+
+      menuToggle.classList.toggle('active', isOpen);
+      menuToggle.setAttribute('aria-expanded', String(isOpen));
+    });
+
+    document.addEventListener('click', (event) => {
+      if (
+        !menuToggle.contains(event.target) &&
+        !mobileMenu.contains(event.target)
+      ) {
+        mobileMenu.classList.remove('show');
+        menuToggle.classList.remove('active');
+        menuToggle.setAttribute('aria-expanded', 'false');
       }
     });
 
-    // Optional: Add a small toast notification system for better UX
-    function showToast(message, type = 'info') {
-      // Remove existing toast if any
-      const existingToast = document.querySelector('.camera-toast');
-      if (existingToast) existingToast.remove();
+    mobileMenu.querySelectorAll('a').forEach((link) => {
+      link.addEventListener('click', () => {
+        mobileMenu.classList.remove('show');
+        menuToggle.classList.remove('active');
+        menuToggle.setAttribute('aria-expanded', 'false');
+      });
+    });
 
-      const toast = document.createElement('div');
-      toast.className = 'camera-toast fixed bottom-20 left-1/2 transform -translate-x-1/2 z-50 px-4 py-2 rounded-lg text-sm font-bold font-["JetBrains_Mono",monospace] transition-all duration-300';
-
-      if (type === 'success') {
-        toast.style.backgroundColor = 'rgba(0, 255, 163, 0.9)';
-        toast.style.color = '#04070f';
-        toast.textContent = '✓ ' + message;
-      } else if (type === 'error') {
-        toast.style.backgroundColor = 'rgba(255, 68, 68, 0.9)';
-        toast.style.color = '#fff';
-        toast.textContent = '✗ ' + message;
-      } else {
-        toast.style.backgroundColor = 'rgba(0, 229, 255, 0.9)';
-        toast.style.color = '#04070f';
-        toast.textContent = 'ℹ ' + message;
+    window.addEventListener('resize', () => {
+      if (window.innerWidth >= 768) {
+        mobileMenu.classList.remove('show');
+        menuToggle.classList.remove('active');
+        menuToggle.setAttribute('aria-expanded', 'false');
       }
+    });
 
-      document.body.appendChild(toast);
-
-      // Auto remove after 2 seconds
-      setTimeout(() => {
-        toast.style.opacity = '0';
-        setTimeout(() => toast.remove(), 300);
-      }, 2000);
-    }
-
-    toggleBtn?.addEventListener('click', toggleCamera);
-
-    // Helper functions (keep your existing ones)
-    function renderSentence() {
-      const box = document.getElementById('sentenceBox');
-      const ph = document.getElementById('sentencePlaceholder');
-      if (sentenceWords.length === 0) {
-        box.innerHTML = '<span id="sentencePlaceholder" class="text-[#5a6a82] italic font-normal text-sm">Detected signs appear here...</span>';
-      } else {
-        box.textContent = sentenceWords.join(' ');
-      }
-    }
-
-    function undoWord() {
-      sentenceWords.pop();
-      renderSentence();
-    }
-
-    function clearSentence() {
-      sentenceWords.length = 0;
-      lastGesture = '';
-      renderSentence();
-    }
-
-    // Session timer
-    setInterval(() => {
-      const s = Math.floor((Date.now() - sessionStart) / 1000);
-      const mm = String(Math.floor(s / 60)).padStart(2, '0');
-      const ss = String(s % 60).padStart(2, '0');
-      document.getElementById('sessionTimer').textContent = `${mm}:${ss}`;
-    }, 1000);
-
-    // Poll API for state updates
-    setInterval(async () => {
-      try {
-        const res = await fetch('/dynamic/api/state');
-        const d = await res.json();
-        updateUI(d);
-      } catch (e) { }
-    }, 200);
-
-    // Initial camera state - Set to OFF (camera disabled by default)
-    setCameraState(false); // Changed from true to false
-
-    // Helper functions
-    function renderSentence() {
-      const box = document.getElementById('sentenceBox');
-      const ph = document.getElementById('sentencePlaceholder');
-      if (sentenceWords.length === 0) {
-        box.innerHTML = '<span id="sentencePlaceholder" class="text-[#5a6a82] italic font-normal text-sm">Detected signs appear here...</span>';
-      } else {
-        box.textContent = sentenceWords.join(' ');
-      }
-    }
-
-    function undoWord() {
-      sentenceWords.pop();
-      renderSentence();
-    }
-
-    function clearSentence() {
-      sentenceWords.length = 0;
-      lastGesture = '';
-      renderSentence();
-    }
-
-    // Session timer
-    setInterval(() => {
-      const s = Math.floor((Date.now() - sessionStart) / 1000);
-      const mm = String(Math.floor(s / 60)).padStart(2, '0');
-      const ss = String(s % 60).padStart(2, '0');
-      document.getElementById('sessionTimer').textContent = `${mm}:${ss}`;
-    }, 1000);
-
-    // Poll API for state updates
-    setInterval(async () => {
-      try {
-        const res = await fetch('/dynamic/api/state');
-        const d = await res.json();
-        updateUI(d);
-      } catch (e) { }
-    }, 200);
-
-    function updateUI(d) {
-      const gesture = d.prediction || '—';
-      const conf = d.confidence || 0;
-
-      // Update prediction display
-      document.getElementById('predGesture').textContent = (gesture === 'Waiting...' || gesture === 'Idle') ? '—' : gesture.replace(/_/g, ' ').toUpperCase();
-      document.getElementById('predConf').textContent = conf.toFixed(1) + '%';
-      document.getElementById('confPct').textContent = conf.toFixed(1) + '%';
-      document.getElementById('confBar').style.width = conf + '%';
-
-      // Stats
-      document.getElementById('statTotal').textContent = d.total_predictions || 0;
-      const counts = d.session_counts || {};
-      const unique = Object.keys(counts).length;
-      document.getElementById('statUnique').textContent = unique;
-
-      if (d.history && d.history.length > 0) {
-        const avgConf = d.history.reduce((s, h) => s + h.confidence, 0) / d.history.length;
-        document.getElementById('statAvgConf').textContent = avgConf.toFixed(1) + '%';
-        const topEntry = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
-        if (topEntry) document.getElementById('statTopSign').textContent = topEntry[0].replace(/_/g, ' ');
-      } else {
-        document.getElementById('statAvgConf').textContent = '0%';
-      }
-
-      // Top 5 probabilities
-      const probs = d.all_probs || {};
-      const sorted = Object.entries(probs).sort((a, b) => b[1] - a[1]).slice(0, 5);
-      const top5El = document.getElementById('top5List');
-      if (sorted.length) {
-        top5El.innerHTML = sorted.map(([g, p]) => `
-      <div class="flex items-center gap-2.5 mb-2">
-        <div class="text-[0.75rem] font-semibold w-[110px] text-[#e8edf5] whitespace-nowrap overflow-hidden text-ellipsis font-['JetBrains_Mono',monospace]">${g.replace(/_/g, ' ')}</div>
-        <div class="flex-1 h-1 bg-[#1e2d47] rounded-full overflow-hidden"><div class="h-full rounded-full bg-[#7c3aed] transition-all duration-300" style="width:${p}%"></div></div>
-        <div class="text-[0.7rem] text-[#5a6a82] w-9 text-right font-['JetBrains_Mono',monospace]">${p.toFixed(1)}%</div>
-      </div>
-    `).join('');
-      }
-
-      // History feed
-      const hist = d.history || [];
-      // ONLY update the HTML if the number of entries has changed (stops flickering)
-      if (hist.length !== lastHistoryCount) {
-        document.getElementById('histCount').textContent = hist.length + ' entries';
-        if (hist.length) {
-          document.getElementById('historyFeed').innerHTML = hist.map(h => `
-        <div class="flex items-center gap-3 py-2 border-b border-white/5 animate-slide-in">
-          <div class="flex-1 font-bold text-sm uppercase text-[#e8edf5] font-['Anta',sans-serif]">${h.gesture.replace(/_/g, ' ')}</div>
-          <div class="font-['JetBrains_Mono',monospace] text-[0.7rem] text-[#00ffa3] font-medium">${h.confidence}%</div>
-          <div class="font-['JetBrains_Mono',monospace] text-[0.65rem] text-[#5a6a82]">${h.timestamp}</div>
-        </div>
-      `).reverse().join(''); // Added .reverse() so the newest one stays at the top
-        } else {
-          document.getElementById('historyFeed').innerHTML = `<div class="text-center py-8 text-[#5a6a82] text-sm font-['JetBrains_Mono',monospace]"><span class="text-2xl block mb-2">👐</span>Start signing to see predictions</div>`;
-        }
-        lastHistoryCount = hist.length; // Update the counter
-      }
-
-      // Sentence builder - auto append on new gesture
-      if (gesture && !['Waiting...', 'Idle', 'Thinking...', '—', ''].includes(gesture) && gesture !== lastGesture) {
-        lastGesture = gesture;
-        sentenceWords.push(gesture.replace(/_/g, ' '));
-        renderSentence();
-      }
-    }
-
-    // Mobile menu toggle functionality
-    (function () {
-      const menuToggle = document.getElementById('menuToggle');
-      const mobileMenu = document.getElementById('mobileMenu');
-
-      if (menuToggle && mobileMenu) {
-        menuToggle.addEventListener('click', function (e) {
-          e.stopPropagation();
-          mobileMenu.classList.toggle('show');
-          menuToggle.classList.toggle('active');
-        });
-
-        // Close menu when clicking outside (optional but user-friendly)
-        document.addEventListener('click', function (event) {
-          if (!menuToggle.contains(event.target) && !mobileMenu.contains(event.target)) {
-            if (mobileMenu.classList.contains('show')) {
-              mobileMenu.classList.remove('show');
-              menuToggle.classList.remove('active');
-            }
-          }
-        });
-
-        // Close menu when a link is clicked (smooth navigation)
-        const mobileLinks = mobileMenu.querySelectorAll('a');
-        mobileLinks.forEach(link => {
-          link.addEventListener('click', function () {
-            mobileMenu.classList.remove('show');
-            menuToggle.classList.remove('active');
-          });
-        });
-
-        // Handle window resize: if screen becomes desktop, ensure menu is closed
-        window.addEventListener('resize', function () {
-          if (window.innerWidth >= 768) { // md breakpoint
-            if (mobileMenu.classList.contains('show')) {
-              mobileMenu.classList.remove('show');
-              menuToggle.classList.remove('active');
-            }
-          }
-        });
-      }
-    })();
+    // Flask controls the actual camera; start with the interface switched off.
+    setCameraState(false);
   </script>
 </body>
-
 </html>
