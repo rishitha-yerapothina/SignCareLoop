@@ -244,30 +244,69 @@
         throw new Error(data.error || 'Video analysis failed.');
       }
 
-      resultText = data.text || data.prediction || '';
-      prediction.textContent = resultText || 'No prediction';
-      confidence.textContent = 'Confidence: ' + data.confidence + '%';
+      resultText = data.recognized_text || '';
+      prediction.textContent = resultText || 'No confident signs detected';
+      confidence.textContent = 'Best-window confidence: ' + data.confidence + '%';
       quality.hidden = false;
       quality.className = 'notice ' + (data.accepted ? 'good' : 'warn');
-      quality.textContent = data.message || (data.accepted ? 'Prediction accepted.' : 'Prediction is uncertain.');
+      quality.textContent = data.message || (
+        data.accepted
+          ? 'Some predictions passed the confidence threshold.'
+          : 'No confident signs detected.'
+      );
       speakBtn.disabled = !resultText;
+
       uploadStatus.textContent =
-        'Analysis complete. Sampled ' + data.sampled_frames +
-        ' frames; hands detected in ' + data.hand_frames + ' sampled frames.';
+        'Analysis complete. Processed ' + data.sampled_frames +
+        ' frames across ' + (data.window_count || 0) +
+        ' overlapping windows; hands detected in ' + data.hand_frames +
+        ' frames.';
 
       const title = document.createElement('h3');
-      title.textContent = 'Top candidate signs';
+      title.textContent = 'Timestamped window predictions';
       title.style.fontSize = '15px';
       title.style.margin = '18px 0 4px';
       candidates.appendChild(title);
 
+      const formatTime = seconds => {
+        const total = Math.max(0, Math.floor(Number(seconds) || 0));
+        return Math.floor(total / 60) + ':' +
+          String(total % 60).padStart(2, '0');
+      };
+
+      (data.segments || []).forEach(item => {
+        const row = document.createElement('div');
+        row.className = 'candidate';
+
+        const name = document.createElement('span');
+        name.textContent =
+          formatTime(item.start_seconds) + '–' +
+          formatTime(item.end_seconds) + ' · ' +
+          item.text + (item.accepted ? '' : ' (uncertain)');
+
+        const score = document.createElement('strong');
+        score.textContent = item.confidence + '%';
+
+        row.append(name, score);
+        candidates.appendChild(row);
+      });
+
+      const alternativesTitle = document.createElement('h3');
+      alternativesTitle.textContent = 'Top alternatives for the strongest window';
+      alternativesTitle.style.fontSize = '15px';
+      alternativesTitle.style.margin = '18px 0 4px';
+      candidates.appendChild(alternativesTitle);
+
       (data.top_candidates || []).forEach(item => {
         const row = document.createElement('div');
         row.className = 'candidate';
+
         const name = document.createElement('span');
         name.textContent = item.text;
+
         const score = document.createElement('strong');
         score.textContent = item.confidence + '%';
+
         row.append(name, score);
         candidates.appendChild(row);
       });

@@ -270,6 +270,9 @@ def generate_dynamic_frames():
     sequence = deque(maxlen=DYNAMIC_SEQUENCE_LENGTH)
     prediction_buffer = deque(maxlen=DYNAMIC_BUFFER_SIZE)
     previous_landmarks = None
+    gesture_armed = True
+    idle_frames = 0
+    hand_absent_frames = 0
     
     demo_mode = not DYNAMIC_MODEL_LOADED
     
@@ -368,53 +371,79 @@ def generate_dynamic_frames():
                 
                 if not demo_mode and MEDIAPIPE_AVAILABLE:
                     try:
-                        keypoints = extract_keypoints(pose_res, hand_res)
-                        normalized_keypoints = normalize_frame(keypoints)
-                        smoothed_keypoints = apply_ema(normalized_keypoints, previous_landmarks, DYNAMIC_EMA_ALPHA)
-                        previous_landmarks = smoothed_keypoints
-                        sequence.append(smoothed_keypoints)
+                        hands_visible = bool(
+                            hand_res and hand_res.multi_hand_landmarks
+                        )
+                        if hands_visible:
+                            hand_absent_frames = 0
+                        else:
+                            hand_absent_frames += 1
+                            if hand_absent_frames >= 8:
+                                gesture_armed = True
+                                idle_frames = 0
+                                prediction_buffer.clear()
+                                sequence.clear()
+                                previous_landmarks = None
+                                with dynamic_lock:
+                                    dynamic_state["current_prediction"] = "Waiting..."
+
+                        if hands_visible:
+                            keypoints = extract_keypoints(pose_res, hand_res)
+                            normalized_keypoints = normalize_frame(keypoints)
+                            smoothed_keypoints = apply_ema(normalized_keypoints, previous_landmarks, DYNAMIC_EMA_ALPHA)
+                            previous_landmarks = smoothed_keypoints
+                            sequence.append(smoothed_keypoints)
                         
-                        if len(sequence) == DYNAMIC_SEQUENCE_LENGTH:
-                            seq_array = np.array(sequence)
-                            motion_variance = np.var(seq_array, axis=0).mean()
+                            if len(sequence) == DYNAMIC_SEQUENCE_LENGTH:
+                                seq_array = np.array(sequence)
+                                motion_variance = np.var(seq_array, axis=0).mean()
                             
-                            if motion_variance < 0.001:
-                                local_prediction = "Idle"
-                                local_confidence = 0.0
-                            else:
-                                input_tensor = torch.tensor(seq_array, dtype=torch.float32).unsqueeze(0).to(device)
-                                with torch.no_grad():
-                                    res = dynamic_model(input_tensor)
-                                    probs = torch.softmax(res, dim=1).cpu().numpy()[0]
+                                if motion_variance < 0.001:
+                                    local_prediction = "Idle"
+                                    local_confidence = 0.0
+                                else:
+                                    input_tensor = torch.tensor(seq_array, dtype=torch.float32).unsqueeze(0).to(device)
+                                    with torch.no_grad():
+                                        res = dynamic_model(input_tensor)
+                                        probs = torch.softmax(res, dim=1).cpu().numpy()[0]
                                 
-                                max_idx = np.argmax(probs)
-                                local_confidence = float(probs[max_idx])
-                                all_probs = {DYNAMIC_CLASSES[i]: float(probs[i]) for i in range(len(DYNAMIC_CLASSES))}
+                                    max_idx = np.argmax(probs)
+                                    local_confidence = float(probs[max_idx])
+                                    all_probs = {DYNAMIC_CLASSES[i]: float(probs[i]) for i in range(len(DYNAMIC_CLASSES))}
                                 
-                                if local_confidence > DYNAMIC_CONFIDENCE_THRESHOLD:
-                                    local_prediction = DYNAMIC_CLASSES[max_idx]
-                                    prediction_buffer.append(local_prediction)
+                                    if local_confidence > DYNAMIC_CONFIDENCE_THRESHOLD:
+                                        local_prediction = DYNAMIC_CLASSES[max_idx]
+                                        idle_frames = 0
+                                        prediction_buffer.append(local_prediction)
 
-                                    vote_tally = Counter(prediction_buffer).most_common(1)[0]
-                                    winning_gesture, winning_votes = vote_tally
+                                        vote_tally = Counter(prediction_buffer).most_common(1)[0]
+                                        winning_gesture, winning_votes = vote_tally
 
-                                    if winning_votes >= DYNAMIC_VOTING_THRESHOLD:
-                                        with dynamic_lock:
-                                            prev = dynamic_state["current_prediction"]
-                                            dynamic_state["current_prediction"] = winning_gesture
-                                            dynamic_state["confidence"] = local_confidence
-                                            dynamic_state["all_probs"] = all_probs
+                                        if winning_votes >= DYNAMIC_VOTING_THRESHOLD:
+                                            with dynamic_lock:
+                                                dynamic_state["confidence"] = local_confidence
+                                                dynamic_state["all_probs"] = all_probs
 
-                                            if winning_gesture not in ["Idle", "Waiting...", "Thinking..."] and winning_gesture != prev:
-                                                entry = {
-                                                    "gesture": winning_gesture,
-                                                    "confidence": round(local_confidence * 100, 1),
-                                                    "timestamp": time.strftime("%H:%M:%S")
-                                                }
-                                                dynamic_state["history"].insert(0, entry)
-                                                dynamic_state["history"] = dynamic_state["history"][:50]
-                                                dynamic_state["session_counts"][winning_gesture] = dynamic_state["session_counts"].get(winning_gesture, 0) + 1
-                                                dynamic_state["total_predictions"] += 1
+                                                if gesture_armed:
+                                                    dynamic_state["current_prediction"] = winning_gesture
+                                                    if winning_gesture not in ["Idle", "Waiting...", "Thinking..."]:
+                                                        entry = {
+                                                            "gesture": winning_gesture,
+                                                            "confidence": round(local_confidence * 100, 1),
+                                                            "timestamp": time.strftime("%H:%M:%S")
+                                                        }
+                                                        dynamic_state["history"].insert(0, entry)
+                                                        dynamic_state["history"] = dynamic_state["history"][:50]
+                                                        dynamic_state["session_counts"][winning_gesture] = dynamic_state["session_counts"].get(winning_gesture, 0) + 1
+                                                        dynamic_state["total_predictions"] += 1
+                                                    gesture_armed = False
+                                    else:
+                                        idle_frames += 1
+                                        if idle_frames >= 8:
+                                            gesture_armed = True
+                                            prediction_buffer.clear()
+                                            with dynamic_lock:
+                                                dynamic_state["current_prediction"] = "Waiting..."
                     except Exception as e:
                         print(f"⚠️ Dynamic inference error: {e}")
                 
@@ -688,13 +717,14 @@ def dynamic_video_upload_api():
                 "error": "For this prototype, upload a video no longer than 30 seconds showing one sign."
             }), 422
 
-        frame_indices = np.linspace(
-            0, frame_count - 1, DYNAMIC_SEQUENCE_LENGTH
-        ).astype(int)
+        # Sample the video at approximately 30 frames per second.
+        frame_step = max(1, int(round(fps / 30.0)))
+        frame_indices = list(range(0, frame_count, frame_step))
 
         sequence = []
+        sampled_times = []
+        hand_flags = []
         previous_landmarks = None
-        hand_frames = 0
 
         with mp_pose.Pose(
             min_detection_confidence=0.5,
@@ -708,83 +738,153 @@ def dynamic_video_upload_api():
             for frame_index in frame_indices:
                 cap.set(cv2.CAP_PROP_POS_FRAMES, int(frame_index))
                 ok, frame = cap.read()
-
                 if not ok:
                     continue
 
+                frame = cv2.flip(frame, 1)
                 rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 rgb.flags.writeable = False
 
                 pose_result = pose.process(rgb)
                 hand_result = hands.process(rgb)
-
-                if hand_result.multi_hand_landmarks:
-                    hand_frames += 1
+                hands_visible = bool(
+                    hand_result.multi_hand_landmarks
+                )
+                hand_flags.append(hands_visible)
 
                 keypoints = extract_keypoints(pose_result, hand_result)
                 normalized = normalize_frame(keypoints)
                 smoothed = apply_ema(
-                    normalized,
-                    previous_landmarks,
-                    DYNAMIC_EMA_ALPHA
+                    normalized, previous_landmarks, DYNAMIC_EMA_ALPHA
                 )
                 previous_landmarks = smoothed
+
                 sequence.append(smoothed)
+                sampled_times.append(frame_index / fps)
 
         cap.release()
         cap = None
 
-        if len(sequence) != DYNAMIC_SEQUENCE_LENGTH:
+        if len(sequence) < DYNAMIC_SEQUENCE_LENGTH:
             return jsonify({
                 "success": False,
-                "error": "Could not read enough frames from the video. Try another file."
+                "error": (
+                    "The video does not contain enough usable frames. "
+                    "Use a clearer video of at least one second."
+                )
             }), 422
 
+        hand_frames = sum(hand_flags)
         if hand_frames < 3:
             return jsonify({
                 "success": False,
-                "error": "Hands were not detected clearly enough. Keep your hands visible and try again."
+                "error": (
+                    "Hands were not detected clearly enough. "
+                    "Keep your hands visible and try again."
+                )
             }), 422
 
-        sequence_array = np.asarray(sequence, dtype=np.float32)
-        input_tensor = torch.tensor(
-            sequence_array,
-            dtype=torch.float32
-        ).unsqueeze(0).to(device)
+        # Predict overlapping 30-frame windows instead of one window
+        # stretched across the entire video.
+        window_length = DYNAMIC_SEQUENCE_LENGTH
+        stride = 10
+        last_start = len(sequence) - window_length
+        window_starts = list(range(0, last_start + 1, stride))
+        if not window_starts or window_starts[-1] != last_start:
+            window_starts.append(last_start)
+
+        window_predictions = []
 
         with torch.no_grad():
-            logits = dynamic_model(input_tensor)
-            probabilities = torch.softmax(logits, dim=1).cpu().numpy()[0]
+            for window_start in window_starts:
+                window_end = window_start + window_length
+                window_array = np.asarray(
+                    sequence[window_start:window_end],
+                    dtype=np.float32
+                )
+                input_tensor = torch.tensor(
+                    window_array, dtype=torch.float32
+                ).unsqueeze(0).to(device)
 
-        best_index = int(np.argmax(probabilities))
-        confidence = float(probabilities[best_index])
-        prediction = DYNAMIC_CLASSES[best_index]
-        top_indices = np.argsort(probabilities)[::-1][:5]
+                logits = dynamic_model(input_tensor)
+                probabilities = torch.softmax(
+                    logits, dim=1
+                ).cpu().numpy()[0]
 
+                best_index = int(np.argmax(probabilities))
+                confidence = float(probabilities[best_index])
+                label = DYNAMIC_CLASSES[best_index]
+                accepted = confidence > DYNAMIC_CONFIDENCE_THRESHOLD
+
+                window_predictions.append({
+                    "label": label,
+                    "text": label.replace("_", " "),
+                    "confidence": round(confidence * 100, 1),
+                    "accepted": accepted,
+                    "start_seconds": round(
+                        sampled_times[window_start], 2
+                    ),
+                    "end_seconds": round(
+                        sampled_times[window_end - 1], 2
+                    ),
+                    "_probabilities": probabilities
+                })
+
+        # Collapse repeated accepted labels in the transcript. Keep the
+        # individual windows available so uncertain predictions are visible.
+        recognized_labels = []
+        for item in window_predictions:
+            if item["accepted"]:
+                if not recognized_labels or recognized_labels[-1] != item["label"]:
+                    recognized_labels.append(item["label"])
+
+        recognized_text = " ".join(
+            label.replace("_", " ") for label in recognized_labels
+        )
+
+        best_window = max(
+            window_predictions, key=lambda item: item["confidence"]
+        )
+        best_probabilities = best_window.pop("_probabilities")
+
+        top_indices = np.argsort(best_probabilities)[::-1][:5]
         top_candidates = [
             {
                 "label": DYNAMIC_CLASSES[int(index)],
                 "text": DYNAMIC_CLASSES[int(index)].replace("_", " "),
-                "confidence": round(float(probabilities[index]) * 100, 1)
+                "confidence": round(
+                    float(best_probabilities[index]) * 100, 1
+                )
             }
             for index in top_indices
         ]
 
+        # Remove internal probability arrays from the response.
+        for item in window_predictions:
+            item.pop("_probabilities", None)
+
         return jsonify({
             "success": True,
-            "prediction": prediction,
-            "text": prediction.replace("_", " "),
-            "confidence": round(confidence * 100, 1),
-            "accepted": confidence > DYNAMIC_CONFIDENCE_THRESHOLD,
+            "prediction": recognized_text or best_window["text"],
+            "text": recognized_text,
+            "recognized_text": recognized_text,
+            "confidence": best_window["confidence"],
+            "accepted": bool(recognized_labels),
             "threshold": round(DYNAMIC_CONFIDENCE_THRESHOLD * 100, 1),
             "hand_frames": hand_frames,
             "sampled_frames": len(sequence),
             "duration_seconds": round(duration, 2),
+            "window_count": len(window_predictions),
+            "segments": window_predictions,
             "top_candidates": top_candidates,
             "message": (
-                "Prediction passed the confidence threshold."
-                if confidence > DYNAMIC_CONFIDENCE_THRESHOLD
-                else "Low confidence. Treat this result as uncertain and try a clearer video."
+                f"Found {len(recognized_labels)} accepted sign label(s). "
+                "Review the timestamped windows; predictions may repeat "
+                "or be incorrect."
+                if recognized_labels
+                else
+                "No window passed the confidence threshold. "
+                "Results are uncertain; try a clearer video."
             )
         })
 
